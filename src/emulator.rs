@@ -39,23 +39,25 @@ pub struct Emulator {
     pub eip: u32,
 }
 
+const ORG: usize = 0x7C00;
+
 impl fmt::Display for Emulator {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use self::Register::*;
         let emu = format!("\
         Emulator\n\
         \tregisters\n\
-        \t\tEAX: 0x{EAX:04X}\n\
-        \t\tECX: 0x{ECX:04X}\n\
-        \t\tEDX: 0x{EDX:04X}\n\
-        \t\tEBX: 0x{EBX:04X}\n\
-        \t\tESP: 0x{ESP:04X}\n\
-        \t\tEBP: 0x{EBP:04X}\n\
-        \t\tESI: 0x{ESI:04X}\n\
-        \t\tEDI: 0x{EDI:04X}\n\
-        eflags:  0x{eflags:04X}\n\
+        \t\tEAX: 0x{EAX:08X}\n\
+        \t\tECX: 0x{ECX:08X}\n\
+        \t\tEDX: 0x{EDX:08X}\n\
+        \t\tEBX: 0x{EBX:08X}\n\
+        \t\tESP: 0x{ESP:08X}\n\
+        \t\tEBP: 0x{EBP:08X}\n\
+        \t\tESI: 0x{ESI:08X}\n\
+        \t\tEDI: 0x{EDI:08X}\n\
+        eflags:  0x{eflags:08X}\n\
         memory:  {memory}\n\
-        eip:     0x{eip:04X}\n",
+        eip:     0x{eip:08X}\n",
 
         EAX=self.registers[EAX as usize],
         ECX=self.registers[ECX as usize],
@@ -87,9 +89,19 @@ impl Emulator {
                 /* EDI */ 0
             ],
             eflags: 0,
-            memory: Vec::<u8>::with_capacity(size),
+            memory: Vec::with_capacity(ORG + size),
             eip: eip,
         }
+    }
+
+    pub fn load(&mut self, file: &mut std::fs::File) {
+        use std::io::{Read};
+        let mut bios = [0; ORG].to_vec();
+        self.memory.append(&mut bios);
+
+        let mut buf = Vec::new();
+        file.read_to_end(&mut buf).expect("Can't read file");
+        self.memory.append(&mut buf);
     }
 
     pub fn dump(&self) {
@@ -113,6 +125,10 @@ impl Emulator {
         ret
     }
 
+    pub fn get_sign_code32(&self, index: u32) -> i32 {
+        self.get_code32(index) as i32
+    }
+
     pub fn mov_r32_imm32(&mut self) {
         let reg = self.get_code8(0) - 0xB8;
         let value = self.get_code32(1);
@@ -124,11 +140,17 @@ impl Emulator {
         let diff = self.get_sign_code8(1);
         self.eip = ((self.eip as i64) + diff as i64 + 2) as u32;
     }
+
+    pub fn near_jump(&mut self) {
+        let diff = self.get_sign_code32(1);
+        self.eip = ((self.eip as i64) + diff as i64 + 5) as u32;
+    }
 }
 
 pub fn instructions(code: u8) -> Option<fn(&mut Emulator)> {
     match code {
         0xB8 ..= 0xBE => Some(Emulator::mov_r32_imm32),
+        0xE9 => Some(Emulator::near_jump),
         0xEB => Some(Emulator::short_jump),
         _ => None,
     }

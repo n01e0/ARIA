@@ -15,8 +15,8 @@ fn main() {
     if args.len() != 2 {
         println!("Usage: {} path", args[0]);
     } else if let Ok(mut file) = File::open(&args[1]) {
-        let mut emu = emulator::Emulator::new(MEMORY_SIZE, 0x0000, 0x7c00);
-        file.read_to_end(&mut emu.memory).expect("Can't read file");
+        let mut emu = emulator::Emulator::new(MEMORY_SIZE, 0x7c00, 0x7c00);
+        emu.load(&mut file);
 
         while emu.eip < (MEMORY_SIZE as u32) {
             let code = emu.get_code8(0);
