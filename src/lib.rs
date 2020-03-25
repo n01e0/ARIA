@@ -1,5 +1,6 @@
 pub mod emulator;
 
+use crate::emulator::*;
 #[test]
 fn test_enum() {
     assert_eq!(Register::EAX as usize, 0);
@@ -10,7 +11,7 @@ fn test_enum() {
     assert_eq!(Register::EBP as usize, 5);
     assert_eq!(Register::ESI as usize, 6);
     assert_eq!(Register::EDI as usize, 7);
-    assert_eq!(Register::Registers_Count as usize, 8);
+    assert_eq!(Register::RegistersCount as usize, 8);
 
     assert_eq!(format!("{}", Register::EAX), "EAX");
     assert_eq!(format!("{}", Register::ECX), "ECX");
@@ -20,7 +21,7 @@ fn test_enum() {
     assert_eq!(format!("{}", Register::EBP), "EBP");
     assert_eq!(format!("{}", Register::ESI), "ESI");
     assert_eq!(format!("{}", Register::EDI), "EDI");
-    assert_eq!(format!("{}", Register::Registers_Count), "Registers_Count");
+    assert_eq!(format!("{}", Register::RegistersCount), "RegistersCount");
 }
 
 #[test]
@@ -33,7 +34,7 @@ fn test_emulator_init() {
 
 #[test]
 fn test_get_code8() {
-    let mut emu = Emulator {
+    let emu = Emulator {
         registers: [0, 0, 0, 0, 0, 0, 0, 0],
         eflags: 0,
         memory: vec![0xB8],
@@ -45,14 +46,13 @@ fn test_get_code8() {
 
 #[test]
 fn test_get_sign_code8() {
-    let mut emu = Emulator {
+    let emu = Emulator {
         registers: [0, 0, 0, 0, 0, 0, 0, 0],
         eflags: 0,
         memory: vec![0xFF, 0xFE],
         eip: 0,
     };
 
-    assert_eq!(-1, emu.get_sign_code8(0));
     assert_eq!(-2, emu.get_sign_code8(1));
 }
 
@@ -66,4 +66,30 @@ fn test_get_code32() {
     };
 
     assert_eq!(0x12345678, emu.get_code32(0));
+}
+
+#[test]
+fn test_get_memory32() {
+    let emu = Emulator {
+        registers: [0, 0, 0, 0, 0, 0, 0, 0],
+        eflags: 0,
+        memory: vec![0x78, 0x56, 0x34, 0x12],
+        eip: 0,
+    };
+
+    assert_eq!(0x12345678, emu.get_memory32(0));
+}
+
+#[test]
+fn test_set_memory8() {
+    let mut emu = Emulator {
+        registers: [0, 0, 0, 0, 0, 0, 0, 0],
+        eflags: 0,
+        memory: vec![0x00, 0x56, 0x34, 0x12],
+        eip: 1,
+    };
+
+    emu.set_memory8(0x00, 0x78);
+    emu.set_memory8(0x05, 0x01);
+    assert_eq!(0x01123456, emu.get_code32(0));
 }

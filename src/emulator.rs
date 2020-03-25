@@ -1,6 +1,7 @@
 use std::fmt;
+pub mod instruction;
+pub mod modrm;
 
-#[allow(non_camel_case_types)]
 #[derive(Debug)] 
 pub enum Register {
     EAX,
@@ -11,7 +12,7 @@ pub enum Register {
     EBP,
     ESI,
     EDI,
-    Registers_Count,
+    RegistersCount,
 }
 
 use self::Register::*;
@@ -26,14 +27,14 @@ impl fmt::Display for Register {
             EBP => write!(f, "EBP"),
             ESI => write!(f, "ESI"),
             EDI => write!(f, "EDI"),
-            Registers_Count => write!(f, "Registers_Count"),
+            RegistersCount => write!(f, "RegistersCount"),
         }
     }
 }
 
 #[derive(Debug)]
 pub struct Emulator {
-    pub registers: [u32; Register::Registers_Count as usize],
+    pub registers: [u32; Register::RegistersCount as usize],
     pub eflags: u32,
     pub memory: Vec<u8>,
     pub eip: u32,
@@ -108,6 +109,29 @@ impl Emulator {
         eprintln!("{}", self);
     }
 
+    pub fn set_memory8(&mut self, addr: u32, value: u32) {
+        self.memory[addr as usize] = (value & 0xFF) as u8;
+    }
+    
+    pub fn get_memory8(&self, addr: u32) -> u8 {
+        self.memory[addr as usize]
+    }
+    
+    pub fn set_memory32(&mut self, addr: u32, value: u32) {
+        for i in 0..4 {
+            self.set_memory8(addr + i, value >> (i * 8));
+        }
+    }
+    
+    pub fn get_memory32(&self, addr: u32) -> u32 {
+        let mut ret: u32 = 0;
+        for i in 0..4 {
+            ret |= (self.get_memory8(addr + i) as u32) << (i * 8);
+        }
+    
+        ret
+    }
+
     pub fn get_code8(&self, index: u32) -> u8 {
         self.memory[(self.eip + index) as usize] as u8
     }
@@ -129,30 +153,12 @@ impl Emulator {
         self.get_code32(index) as i32
     }
 
-    pub fn mov_r32_imm32(&mut self) {
-        let reg = self.get_code8(0) - 0xB8;
-        let value = self.get_code32(1);
-        self.registers[reg as usize] = value;
-        self.eip += 5;
+    pub fn set_register32(&mut self, index: usize, value: u32) {
+        self.registers[index] = value;
     }
-
-    pub fn short_jump(&mut self) {
-        let diff = self.get_sign_code8(1);
-        self.eip = ((self.eip as i64) + diff as i64 + 2) as u32;
-    }
-
-    pub fn near_jump(&mut self) {
-        let diff = self.get_sign_code32(1);
-        self.eip = ((self.eip as i64) + diff as i64 + 5) as u32;
-    }
-}
-
-pub fn instructions(code: u8) -> Option<fn(&mut Emulator)> {
-    match code {
-        0xB8 ..= 0xBE => Some(Emulator::mov_r32_imm32),
-        0xE9 => Some(Emulator::near_jump),
-        0xEB => Some(Emulator::short_jump),
-        _ => None,
+    
+    pub fn get_register32(&self, index: usize) -> u32 {
+        self.registers[index]
     }
 }
 
