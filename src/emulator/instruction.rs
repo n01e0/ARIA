@@ -99,3 +99,17 @@ pub fn instructions(code: u8) -> Option<fn(&mut Emulator)> {
     }
 }
 
+pub fn instructions_with_name(code: u8) -> (Option<fn(&mut Emulator)>, &'static str) {
+    match code {
+        0x01 => (Some(Emulator::add_rm32_r32), "add_rm32_r32"),
+        0x83 => (Some(Emulator::code_83), "code_83"),
+        0x89 => (Some(Emulator::mov_rm32_r32), "mov_rm32_r32"),
+        0x8B => (Some(Emulator::mov_r32_rm32), "mov_r32_rm32"),
+        0xB8 ..= 0xBE => (Some(Emulator::mov_r32_imm32), "mov_r32_imm32"),
+        0xC7 => (Some(Emulator::mov_rm32_imm32), "mov_rm32_imm32"),
+        0xE9 => (Some(Emulator::near_jump), "near_jump"),
+        0xEB => (Some(Emulator::short_jump), "short_jump"),
+        0xFF => (Some(Emulator::code_ff), "code_ff"),
+        _ => (None, "None"),
+    }
+}

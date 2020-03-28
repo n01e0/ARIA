@@ -5,3 +5,4 @@ authors = ["n01e0 <noleo@vanillabeans.mobi>"]
 edition = "2018"
 
 [dependencies]
+clap = "*"

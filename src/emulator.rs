@@ -56,9 +56,9 @@ impl fmt::Display for Emulator {
         \t\tEBP: 0x{EBP:08X}\n\
         \t\tESI: 0x{ESI:08X}\n\
         \t\tEDI: 0x{EDI:08X}\n\
-        eflags:  0x{eflags:08X}\n\
-        memory:  {memory}\n\
-        eip:     0x{eip:08X}\n",
+        \teflags:  0x{eflags:08X}\n\
+        \tmemory:  {memory}\n\
+        \teip:     0x{eip:08X}\n",
 
         EAX=self.registers[EAX as usize],
         ECX=self.registers[ECX as usize],
