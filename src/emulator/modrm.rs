@@ -46,10 +46,10 @@ impl Disp {
 #[derive(Debug, Copy, Clone)]
 pub struct ModRM {
     pub mod_byte: u8,
-    pub or: OR,
+    pub or: OR,     // u8
     pub rm: u8,
     pub sib: u8,
-    pub disp: Disp,
+    pub disp: Disp, // u8 or u32
 }
 
 impl Emulator {
@@ -63,21 +63,57 @@ impl Emulator {
         };
 
         let code = self.get_code8(0);
+        /*  code
+         *  +--+--+--+--+--+--+--+--+
+         *  | 7| 6| 5| 4| 3| 2| 1| 0|
+         *  +-----+--------+--------+
+         *  | Mod |   REG  |   R/M  |
+         *  +-----+--------+--------+
+         */
         ret.mod_byte = (code & 0xC0) >> 6;
-        ret.or = Opecode( (code & 0x38) >> 3);
+        /*  code & 
+         *  +--+--+--+--+--+--+--+--+
+         *  | 7| 6| 5| 4| 3| 2| 1| 0|
+         *  +-----+--------+--------+
+         *  |*Mod*| ~~~~~delete~~~~ |
+         *  +--+--+--+--+--+--+--+--+
+         *  | 1| 1| 0| 0| 0| 0| 0| 0|   => 0xC0
+         *  +--+--+--+--+--+--+--+--+
+         */
+        ret.or = RegIndex( (code & 0x38) >> 3);
+        /*  code
+         *  +--+--+--+--+--+--+--+--+
+         *  | 7| 6| 5| 4| 3| 2| 1| 0|
+         *  +-----+--------+--------+
+         *  |~del~| *REG*  |~delete~|
+         *  +--+--+--+--+--+--+--+--+
+         *  | 0| 0| 1| 1| 1| 0| 0| 0|   => 0x38
+         *  +--+--+--+--+--+--+--+--+
+         */
         ret.rm = code & 0x07;
+        /*  code
+         *  +--+--+--+--+--+--+--+--+
+         *  | 7| 6| 5| 4| 3| 2| 1| 0|
+         *  +-----+--------+--------+
+         *  |~del~|~delete~|  *R/M* |
+         *  +--+--+--+--+--+--+--+--+
+         *  | 0| 0| 0| 0| 0| 1| 1| 1|   => 0x07
+         *  +--+--+--+--+--+--+--+--+
+         */
 
         self.eip += 1;
 
-        if ret.mod_byte != 0x03 && ret.rm == 4 {
+        if ret.mod_byte != 0b0011 
+            && ret.rm == 0b0100 {
             ret.sib = self.get_code8(0);
             self.eip += 1;
         }
 
-        if (ret.mod_byte == 0 && ret.rm == 5) || ret.mod_byte == 2 {
+        if (ret.mod_byte == 0b00 && ret.rm == 0b0101) 
+            || ret.mod_byte == 0b0010 {
             ret.disp = Disp32(self.get_sign_code32(0) as u32);
             self.eip += 4;
-        } else if ret.mod_byte == 1 {
+        } else if ret.mod_byte == 0b0001 {
             ret.disp = Disp8(self.get_sign_code8(0));
             self.eip += 1;
         }
@@ -86,7 +122,7 @@ impl Emulator {
     }
 
     pub fn get_rm32(&mut self, modrm: &ModRM) -> u32 {
-        if modrm.mod_byte == 3 {
+        if modrm.mod_byte == 0b0011 {
             self.get_register32(modrm.rm as usize)
         } else {
             let addr = self.calc_memory_address(&modrm);
@@ -99,7 +135,7 @@ impl Emulator {
     }
 
     pub fn set_rm32(&mut self, modrm: &ModRM, value: u32) {
-        if modrm.mod_byte == 3 {
+        if modrm.mod_byte == 0b0011 {
             self.set_register32(modrm.rm as usize, value);
         } else {
             let addr = self.calc_memory_address(modrm);
