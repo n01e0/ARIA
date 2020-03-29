@@ -21,16 +21,16 @@ impl Emulator {
     fn mov_rm32_r32(&mut self) {
         self.eip += 1;
         let modrm = self.parse_modrm();
-        let rm32 = self.get_rm32(&modrm);
+        let r32 = self.get_r32(&modrm);
 
-        self.set_rm32(&modrm, rm32);
+        self.set_rm32(&modrm, r32);
     }
 
     fn mov_r32_rm32(&mut self) {
         self.eip += 1;
         let modrm = self.parse_modrm();
-        let r32 = self.get_r32(&modrm);
-        self.set_r32(&modrm, r32);
+        let rm32 = self.get_rm32(&modrm);
+        self.set_r32(&modrm, rm32);
     }
 
     fn add_rm32_r32(&mut self) {
