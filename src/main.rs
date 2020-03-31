@@ -58,7 +58,11 @@ fn main() {
                     break;
                 }
             }
-            emu.dump();
+            if matches.is_present("verbose") {
+                emu.dump_verbose();
+            } else {
+                emu.dump();
+            }
         }
     }
 }

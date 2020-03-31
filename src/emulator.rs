@@ -109,6 +109,10 @@ impl Emulator {
         eprintln!("{}", self);
     }
 
+    pub fn dump_verbose(&self) {
+        eprintln!("{:#?}", self);
+    }
+
     pub fn set_memory8(&mut self, addr: u32, value: u32) {
         self.memory[addr as usize] = (value & 0xFF) as u8;
     }
@@ -159,6 +163,19 @@ impl Emulator {
     
     pub fn get_register32(&self, index: usize) -> u32 {
         self.registers[index]
+    }
+
+    pub fn push32(&mut self, value: u32) {
+        let addr = self.get_register32(ESP as usize) - 4;
+        self.set_register32(ESP as usize, addr);
+        self.set_memory32(addr, value);
+    }
+
+    pub fn pop32(&mut self) -> u32 {
+        let addr = self.get_register32(ESP as usize);
+        let ret = self.get_memory32(addr);
+        self.set_register32(ESP as usize, addr + 4);
+        ret
     }
 }
 

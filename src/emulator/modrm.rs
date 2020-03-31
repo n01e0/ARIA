@@ -56,7 +56,7 @@ impl Emulator {
     pub fn parse_modrm(&mut self) -> ModRM {
         let mut ret = ModRM {
             mod_byte: 0,
-            or: Opecode(0),
+            or: RegIndex(0),
             rm: 0,
             sib: 0,
             disp: Disp32(0),
@@ -103,8 +103,8 @@ impl Emulator {
 
         self.eip += 1;
 
-        if ret.mod_byte != 0b0011 
-            && ret.rm == 0b0100 {
+        if ret.mod_byte != 0b11 
+            && ret.rm == 0b100 {
             ret.sib = self.get_code8(0);
             self.eip += 1;
         }
@@ -113,7 +113,7 @@ impl Emulator {
             || ret.mod_byte == 0b0010 {
             ret.disp = Disp32(self.get_sign_code32(0) as u32);
             self.eip += 4;
-        } else if ret.mod_byte == 0b0001 {
+        } else if ret.mod_byte == 0b01 {
             ret.disp = Disp8(self.get_sign_code8(0));
             self.eip += 1;
         }
@@ -122,7 +122,7 @@ impl Emulator {
     }
 
     pub fn get_rm32(&mut self, modrm: &ModRM) -> u32 {
-        if modrm.mod_byte == 0b0011 {
+        if modrm.mod_byte == 0b11 {
             self.get_register32(modrm.rm as usize)
         } else {
             let addr = self.calc_memory_address(&modrm);
@@ -135,7 +135,7 @@ impl Emulator {
     }
 
     pub fn set_rm32(&mut self, modrm: &ModRM, value: u32) {
-        if modrm.mod_byte == 0b0011 {
+        if modrm.mod_byte == 0b11 {
             self.set_register32(modrm.rm as usize, value);
         } else {
             let addr = self.calc_memory_address(modrm);
