@@ -1,5 +1,5 @@
 [package]
-name = "ARIA"
+name = "aria"
 version = "0.1.0"
 authors = ["n01e0 <noleo@vanillabeans.mobi>"]
 edition = "2018"
