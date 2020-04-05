@@ -1,9 +1,11 @@
 use super::*;
 use crate::emulator::modrm::*;
 
+type Instruction = fn(&mut Emulator);
+
 impl Emulator {
     fn mov_r32_imm32(&mut self) {
-        let reg = self.get_code8(0) - 0xB8;
+        let reg = self.get_code8(0) - 0xB8; // 0xB8 = registers[0]
         let value = self.get_code32(1);
         self.registers[reg as usize] = value;
         self.eip += 5;
@@ -127,7 +129,7 @@ impl Emulator {
     }
 }
 
-pub fn instructions(code: u8) -> Option<fn(&mut Emulator)> {
+pub fn instructions(code: u8) -> Option<Instruction> {
     match code {
         0x01 => Some(Emulator::add_rm32_r32),
         0x50 ..= 0x57 => Some(Emulator::push_r32),
@@ -140,6 +142,7 @@ pub fn instructions(code: u8) -> Option<fn(&mut Emulator)> {
         0xB8 ..= 0xBE => Some(Emulator::mov_r32_imm32),
         0xC3 => Some(Emulator::ret),
         0xC7 => Some(Emulator::mov_rm32_imm32),
+        0xC9 => Some(Emulator::leave),
         0xE8 => Some(Emulator::call_rel32),
         0xE9 => Some(Emulator::near_jump),
         0xEB => Some(Emulator::short_jump),
@@ -148,7 +151,7 @@ pub fn instructions(code: u8) -> Option<fn(&mut Emulator)> {
     }
 }
 
-pub fn instructions_with_name(code: u8) -> (Option<fn(&mut Emulator)>, &'static str) {
+pub fn instructions_with_name(code: u8) -> (Option<Instruction>, &'static str) {
     match code {
         0x01 => (Some(Emulator::add_rm32_r32), "add_rm32_r32"),
         0x50 ..= 0x57 => (Some(Emulator::push_r32), "push_r32"),
@@ -161,6 +164,7 @@ pub fn instructions_with_name(code: u8) -> (Option<fn(&mut Emulator)>, &'static 
         0xB8 ..= 0xBE => (Some(Emulator::mov_r32_imm32), "mov_r32_imm32"),
         0xC3 => (Some(Emulator::ret), "ret"),
         0xC7 => (Some(Emulator::mov_rm32_imm32), "mov_rm32_imm32"),
+        0xC9 => (Some(Emulator::leave), "leave"),
         0xE8 => (Some(Emulator::call_rel32), "call_rel32"),
         0xE9 => (Some(Emulator::near_jump), "near_jump"),
         0xEB => (Some(Emulator::short_jump), "short_jump"),

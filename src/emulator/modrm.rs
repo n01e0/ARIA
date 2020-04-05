@@ -56,7 +56,7 @@ impl Emulator {
     pub fn parse_modrm(&mut self) -> ModRM {
         let mut ret = ModRM {
             mod_byte: 0,
-            or: RegIndex(0),
+            or: Opecode(0),
             rm: 0,
             sib: 0,
             disp: Disp32(0),
