@@ -102,7 +102,11 @@ impl Emulator {
 
         let mut buf = Vec::new();
         file.read_to_end(&mut buf).expect("Can't read file");
-        self.memory.append(&mut buf);
+        self.raw_load(&mut buf);
+    }
+
+    pub fn raw_load(&mut self, bytes: &mut Vec<u8>) {
+        self.memory.append(bytes);
     }
 
     pub fn dump(&self) {
