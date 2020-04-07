@@ -33,9 +33,68 @@ impl fmt::Display for Register {
 }
 
 #[derive(Debug)]
+pub struct Eflags {
+    pub raw: u32
+}
+
+impl Eflags {
+    pub fn set_carry(&mut self, is_carry: bool) {
+        let carry = 1;
+        if is_carry {
+            self.raw |= carry;
+        } else {
+            self.raw &= !carry;
+        }
+    }
+
+    pub fn set_zero(&mut self, is_zero: bool) {
+        let zero = 1 << 6;
+        if is_zero {
+            self.raw |= zero;
+        } else {
+            self.raw &= !zero;
+        }
+    }
+
+    pub fn set_sign(&mut self, is_sign: bool) {
+        let sign = 1 << 7;
+        if is_sign {
+            self.raw |= sign;
+        } else {
+            self.raw &= !sign;
+        }
+    }
+
+    pub fn set_overflow(&mut self, is_overflow: bool) {
+        let overflow = 1 << 11;
+        if is_overflow {
+            self.raw |= overflow;
+        } else {
+            self.raw &= !overflow;
+        }
+    }
+
+    pub fn is_carry(&self) -> bool {
+        self.raw & 1 != 0
+    }
+
+    pub fn is_zero(&self) -> bool {
+        self.raw & (1 << 6) != 0
+    }
+
+    pub fn is_sign(&self) -> bool {
+        self.raw & (1 << 7) != 0
+    }
+
+    pub fn is_overflow(&self) -> bool {
+        self.raw & (1 << 11) != 0
+    }
+}
+
+#[derive(Debug)]
 pub struct Emulator {
     pub registers: [u32; Register::RegistersCount as usize],
-    pub eflags: u32,
+    pub eflags: Eflags,
     pub memory: Vec<u8>,
     pub eip: u32,
 }
@@ -68,7 +127,7 @@ impl fmt::Display for Emulator {
         EBP=self.registers[EBP as usize],
         ESI=self.registers[ESI as usize],
         EDI=self.registers[EDI as usize],
-        eflags=self.eflags,
+        eflags=self.eflags.raw,
         memory="<Ommited>",
         eip=self.eip);
 
@@ -89,7 +148,7 @@ impl Emulator {
                 /* ESI */ 0,
                 /* EDI */ 0
             ],
-            eflags: 0,
+            eflags: Eflags { raw: 0 },
             memory: Vec::with_capacity(ORG + size),
             eip: eip,
         }
@@ -180,6 +239,17 @@ impl Emulator {
         let ret = self.get_memory32(addr);
         self.set_register32(ESP as usize, addr + 4);
         ret
+    }
+
+    pub fn update_eflags_sub(&mut self, v1: u32, v2: u32, result: u64) {
+        let sign1 = v1 >> 31;
+        let sign2 = v2 >> 31;
+        let signr = (result >> 31) as u32 & 1;
+
+        self.eflags.set_carry(result >> 32 != 0);
+        self.eflags.set_zero(result == 0);
+        self.eflags.set_sign(signr != 0);
+        self.eflags.set_overflow(sign1 != sign2 && sign1 != signr);
     }
 }
 

@@ -43,11 +43,37 @@ impl Emulator {
         self.set_rm32(&modrm, rm32 + r32);
     }
 
+    fn add_rm32_imm8(&mut self, modrm: &ModRM) {
+        let rm32 = self.get_rm32(&modrm);
+        let imm8 = self.get_sign_code8(0) as u32;
+        self.eip += 1;
+        self.set_rm32(&modrm, rm32 + imm8);
+    }
+
+    fn cmp_r32_rm32(&mut self) {
+        self.eip += 1;
+        let modrm = self.parse_modrm();
+        let r32 = self.get_r32(&modrm);
+        let rm32 = self.get_rm32(&modrm);
+        let result: u64 = r32 as u64 - rm32 as u64;
+        self.update_eflags_sub(r32, rm32, result);
+    }
+
+    fn cmp_rm32_imm8(&mut self, modrm: &ModRM) {
+        let rm32 = self.get_rm32(&modrm);
+        let imm8 = self.get_sign_code8(0);
+        self.eip += 1;
+        let result = rm32 as u64 - imm8 as u64;
+        self.update_eflags_sub(rm32, imm8 as u32, result);
+    }
+
     fn sub_rm32_imm8(&mut self, modrm: &ModRM) {
         let rm32 = self.get_rm32(modrm);
         let imm8 = self.get_sign_code8(0) as u32;
         self.eip += 1;
+        let result = rm32 as u64 - imm8 as u64;
         self.set_rm32(&modrm, rm32 - imm8);
+        self.update_eflags_sub(rm32, imm8, result);
     }
 
     fn code_83(&mut self) {
@@ -55,7 +81,9 @@ impl Emulator {
         let modrm = self.parse_modrm();
 
         match modrm.or.unwrap() {
+            0 => self.add_rm32_imm8(&modrm),
             5 => self.sub_rm32_imm8(&modrm),
+            7 => self.cmp_rm32_imm8(&modrm),
             n => panic!("Not implimented: 83 /{}", n),
         }
     }
@@ -110,6 +138,97 @@ impl Emulator {
         self.eip = ((self.eip as i64) + diff as i64 + 5) as u32;
     }
 
+    fn jump_sign(&mut self) {
+        let diff = if self.eflags.is_sign() {
+            self.get_sign_code8(1)
+        } else {
+            0
+        };
+        self.eip += diff as u32 + 2;
+    }
+
+    fn jump_not_sign(&mut self) {
+        let diff = if self.eflags.is_sign() {
+            0
+        } else {
+            self.get_sign_code8(1)
+        };
+        self.eip += diff as u32 + 2;
+    }
+
+    fn jump_carry(&mut self) {
+        let diff = if self.eflags.is_carry() {
+            self.get_sign_code8(1)
+        } else {
+            0
+        };
+        self.eip += diff as u32 + 2;
+    }
+
+    fn jump_not_carry(&mut self) {
+        let diff = if self.eflags.is_carry() {
+            0
+        } else {
+            self.get_sign_code8(1)
+        };
+        self.eip += diff as u32 + 2;
+    }
+
+    fn jump_zero(&mut self) {
+        let diff = if self.eflags.is_zero() {
+            self.get_sign_code8(1)
+        } else {
+            0
+        };
+        self.eip += diff as u32 + 2;
+    }
+    
+    fn jump_not_zero(&mut self) {
+        let diff = if self.eflags.is_zero() {
+            0
+        } else {
+            self.get_sign_code8(1)
+        };
+        self.eip += diff as u32 + 2;
+    }
+
+    fn jump_overflow(&mut self) {
+        let diff = if self.eflags.is_overflow() {
+            self.get_sign_code8(1)
+        } else {
+            0
+        };
+        self.eip += diff as u32 + 2;
+    }
+    
+    fn jump_not_overflow(&mut self) {
+        let diff = if self.eflags.is_overflow() {
+            0
+        } else {
+            self.get_sign_code8(1)
+        };
+        self.eip += diff as u32 + 2;
+    }
+
+    fn jump_less(&mut self) {
+        let diff = if self.eflags.is_sign() != self.eflags.is_overflow() {
+            self.get_sign_code8(1)
+        } else {
+            0
+        };
+        self.eip += diff as u32 + 2;
+    }
+
+    fn jump_less_or_eq(&mut self) {
+        let diff = if self.eflags.is_zero() 
+                        || self.eflags.is_sign() != self.eflags.is_overflow() {
+            self.get_sign_code8(1)
+        } else {
+            0
+        };
+        self.eip += diff as u32 + 2;
+    }
+    
     fn call_rel32(&mut self) {
         let diff = self.get_sign_code32(1);
         self.push32(self.eip + 5);
@@ -132,10 +251,21 @@ impl Emulator {
 pub fn instructions(code: u8) -> Option<Instruction> {
     match code {
         0x01 => Some(Emulator::add_rm32_r32),
+        0x3B => Some(Emulator::cmp_r32_rm32),
         0x50 ..= 0x57 => Some(Emulator::push_r32),
         0x58 ..= 0x5F => Some(Emulator::pop_r32),
         0x68 => Some(Emulator::push_imm32),
         0x6A => Some(Emulator::push_imm8), 
+        0x70 => Some(Emulator::jump_overflow),
+        0x71 => Some(Emulator::jump_not_overflow),
+        0x72 => Some(Emulator::jump_carry),
+        0x73 => Some(Emulator::jump_not_carry),
+        0x74 => Some(Emulator::jump_zero),
+        0x75 => Some(Emulator::jump_not_zero),
+        0x78 => Some(Emulator::jump_sign),
+        0x79 => Some(Emulator::jump_not_sign),
+        0x7C => Some(Emulator::jump_less),
+        0x7E => Some(Emulator::jump_less_or_eq),
         0x83 => Some(Emulator::code_83),
         0x89 => Some(Emulator::mov_rm32_r32),
         0x8B => Some(Emulator::mov_r32_rm32),
@@ -154,10 +284,21 @@ pub fn instructions(code: u8) -> Option<Instruction> {
 pub fn instructions_with_name(code: u8) -> (Option<Instruction>, &'static str) {
     match code {
         0x01 => (Some(Emulator::add_rm32_r32), "add_rm32_r32"),
+        0x3B => (Some(Emulator::cmp_r32_rm32), "cmp_r32_rm32"),
         0x50 ..= 0x57 => (Some(Emulator::push_r32), "push_r32"),
         0x58 ..= 0x5F => (Some(Emulator::pop_r32), "pop_r32"),
         0x68 => (Some(Emulator::push_imm32), "push_imm32"),
         0x6A => (Some(Emulator::push_imm8), "push_imm8"),
+        0x70 => (Some(Emulator::jump_overflow), "jump_overflow"),
+        0x71 => (Some(Emulator::jump_not_overflow), "jump_not_overflow"),
+        0x72 => (Some(Emulator::jump_carry), "jump_carry"),
+        0x73 => (Some(Emulator::jump_not_carry), "jump_not_carry"),
+        0x74 => (Some(Emulator::jump_zero), "jump_zero"),
+        0x75 => (Some(Emulator::jump_not_zero), "jump_not_zero"),
+        0x78 => (Some(Emulator::jump_sign), "jump_sign"),
+        0x79 => (Some(Emulator::jump_not_sign), "jump_not_sign"),
+        0x7C => (Some(Emulator::jump_less), "jump_less"),
+        0x7E => (Some(Emulator::jump_less_or_eq), "jump_less_or_eq"),
         0x83 => (Some(Emulator::code_83), "code_83"),
         0x89 => (Some(Emulator::mov_rm32_r32), "mov_rm32_r32"),
         0x8B => (Some(Emulator::mov_r32_rm32), "mov_r32_rm32"),

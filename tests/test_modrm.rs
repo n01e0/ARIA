@@ -13,7 +13,7 @@ mod modrm {
     fn modrm_rm32() {
         let mut emu = Emulator {
             registers: [0, 0, 0, 0, 0, 0, 0, 0], 
-            eflags: 0,
+            eflags: Eflags{ raw: 0 },
             memory: Vec::new(),
             eip: 0,
         };

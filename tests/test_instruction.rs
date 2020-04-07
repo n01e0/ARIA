@@ -31,7 +31,7 @@ mod instruction {
     fn instruction_mov_r32_imm32() {
         let mut emu = Emulator {
             registers: [0, 0, 0, 0, 0, 0, 0, 0],
-            eflags: 0,
+            eflags: Eflags { raw: 0 },
             memory: vec![0xB8, 0x00, 0x00, 0x00, 0x00],
             eip: 0,
         };
@@ -45,7 +45,7 @@ mod instruction {
     fn instruction_mov_rm32_imm32() {
         let mut emu = Emulator {
             registers: [0, 0, 0, 0, 0, 0, 0, 0],
-            eflags: 0,
+            eflags: Eflags { raw: 0 },
             memory: vec![0xC7, 0xC0, 0x00, 0x00, 0x00, 0x00],
             eip: 0,
         };
@@ -59,7 +59,7 @@ mod instruction {
     fn instruction_mov_rm32_r32() {
         let mut emu = Emulator {
             registers: [2, 0, 0, 0, 0, 0, 0, 0],
-            eflags: 0,
+            eflags: Eflags { raw: 0 },
             memory: vec![0x89, 0x00, 0x00, 0x00, 0x00, 0x00],
             eip: 0,
         };
@@ -72,7 +72,7 @@ mod instruction {
     fn instruction_mov_r32_rm32() {
         let mut emu = Emulator {
             registers: [0, 2, 0, 0, 0, 0, 0, 0],
-            eflags: 0,
+            eflags: Eflags { raw: 0 },
             memory: vec![0x8B, 0x11, 0x00, 0x00, 0x00, 0x00],
             eip: 0,
         };
@@ -86,7 +86,7 @@ mod instruction {
     fn instruction_add_rm32_r32() {
         let mut emu = Emulator {
             registers: [0, 0xF0, 0x0F, 0, 0, 0, 0, 0],
-            eflags: 0,
+            eflags: Eflags { raw: 0 },
             memory: vec![0x01, 0b11010001, 0x00],
             eip: 0,
         };
@@ -99,7 +99,7 @@ mod instruction {
     fn instruction_sub_rm32_imm8() {
         let mut emu = Emulator {
             registers: [0, 0, 0, 0, 0xF0, 0, 0, 0], 
-            eflags: 0,
+            eflags: Eflags { raw: 0 },
             memory: vec![0x83, 0xec, 0x10],
             eip: 0,
         };
@@ -112,7 +112,7 @@ mod instruction {
     fn instruction_inc_rm32() {
         let mut emu = Emulator {
             registers: [0, 0, 0, 0, 0, 0, 0, 0],
-            eflags: 0,
+            eflags: Eflags { raw: 0 },
             memory: vec![0xFF, 0b11000111],
             eip: 0,
         };
@@ -125,7 +125,7 @@ mod instruction {
     fn instruction_push_r32() {
         let mut emu = Emulator {
             registers: [0, 0xFF, 0, 0, 0x5, 0, 0, 0],
-            eflags: 0,
+            eflags: Eflags { raw: 0 },
             memory: vec![0x51, 0x00, 0x00, 0x00, 0x00, 0x00],
             eip: 0,
         };
@@ -138,7 +138,7 @@ mod instruction {
     fn instruction_push_imm32() {
         let mut emu = Emulator {
             registers: [0, 0, 0, 0, 0x8, 0, 0, 0],
-            eflags: 0,
+            eflags: Eflags { raw: 0 },
             memory: vec![0x68, 0, 0, 0, 0, 0, 0, 0, 0],
             eip: 0,
         };
@@ -152,7 +152,7 @@ mod instruction {
     fn instruction_push_imm8() {
         let mut emu = Emulator {
             registers: [0, 0, 0, 0, 0x6, 0, 0, 0],
-            eflags: 0,
+            eflags: Eflags { raw: 0 },
             memory: vec![0x6A, 0, 0, 0, 0, 0],
             eip: 0,
         };
@@ -166,7 +166,7 @@ mod instruction {
     fn instruction_pop_r32() {
         let mut emu = Emulator {
             registers: [0, 0, 0, 0, 1, 0, 0, 0],
-            eflags: 0,
+            eflags: Eflags { raw: 0 },
             memory: vec![0x58, 0, 0, 0, 0],
             eip: 0,
         };
@@ -180,7 +180,7 @@ mod instruction {
     fn instruction_short_jump() {
         let mut emu = Emulator {
             registers: [0, 0, 0, 0, 0, 0, 0, 0],
-            eflags: 0,
+            eflags: Eflags { raw: 0 },
             memory: vec![0xEB, 0xFF],
             eip: 0,
         };
@@ -193,7 +193,7 @@ mod instruction {
     fn instruction_near_jump() {
         let mut emu = Emulator {
             registers: [0, 0, 0, 0, 0, 0, 0, 0],
-            eflags: 0,
+            eflags: Eflags { raw: 0 },
             memory: vec![0xE9, 0, 0, 0, 0],
             eip: 0,
         };
@@ -207,7 +207,7 @@ mod instruction {
     fn instruction_call_rel32() {
         let mut emu = Emulator {
             registers: [0, 0, 0, 0, 5, 0, 0, 0],
-            eflags: 0,
+            eflags: Eflags { raw: 0 },
             memory: vec![0xE8, 0, 0, 0, 0],
             eip: 0,
         };
@@ -222,7 +222,7 @@ mod instruction {
     fn instruction_ret() {
         let mut emu = Emulator {
             registers: [0, 0, 0, 0, 1, 0, 0, 0],
-            eflags: 0,
+            eflags: Eflags { raw: 0 },
             memory: vec![0xC3, 0, 0, 0, 0],
             eip: 0,
         };
@@ -236,7 +236,7 @@ mod instruction {
     fn instruction_leave() {
         let mut emu = Emulator {
             registers: [0, 0, 0, 0, 0, 0, 0, 0],
-            eflags: 0,
+            eflags: Eflags { raw: 0 },
             memory: vec![0xC9, 0, 0, 0, 0],
             eip: 0,
         };
