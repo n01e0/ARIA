@@ -10,10 +10,21 @@ mod instruction {
     #[test]
     fn instructions_name() {
         assert_eq!(instructions_with_name(0x01).1, "add_rm32_r32");
+        assert_eq!(instructions_with_name(0x3B).1, "cmp_r32_rm32");
         assert_eq!(instructions_with_name(0x50).1, "push_r32");
         assert_eq!(instructions_with_name(0x58).1, "pop_r32");
         assert_eq!(instructions_with_name(0x68).1, "push_imm32");
         assert_eq!(instructions_with_name(0x6A).1, "push_imm8");
+        assert_eq!(instructions_with_name(0x70).1, "jump_overflow");
+        assert_eq!(instructions_with_name(0x71).1, "jump_not_overflow");
+        assert_eq!(instructions_with_name(0x72).1, "jump_carry");
+        assert_eq!(instructions_with_name(0x73).1, "jump_not_carry");
+        assert_eq!(instructions_with_name(0x74).1, "jump_zero");
+        assert_eq!(instructions_with_name(0x75).1, "jump_not_zero");
+        assert_eq!(instructions_with_name(0x78).1, "jump_sign");
+        assert_eq!(instructions_with_name(0x79).1, "jump_not_sign");
+        assert_eq!(instructions_with_name(0x7C).1, "jump_less");
+        assert_eq!(instructions_with_name(0x7E).1, "jump_less_or_eq");
         assert_eq!(instructions_with_name(0x83).1, "code_83");
         assert_eq!(instructions_with_name(0x89).1, "mov_rm32_r32");
         assert_eq!(instructions_with_name(0x8B).1, "mov_r32_rm32");
