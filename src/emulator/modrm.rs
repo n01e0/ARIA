@@ -121,6 +121,15 @@ impl Emulator {
         ret
     }
 
+    pub fn get_rm8(&mut self, modrm: &ModRM) -> u8 {
+        if modrm.mod_byte == 3 {
+            self.get_register8(modrm.or.unwrap() as usize)
+        } else {
+            let addr = self.calc_memory_address(&modrm);
+            self.get_memory8(addr)
+        }
+    }
+
     pub fn get_rm32(&mut self, modrm: &ModRM) -> u32 {
         if modrm.mod_byte == 0b11 {
             self.get_register32(modrm.rm as usize)
@@ -130,8 +139,25 @@ impl Emulator {
         }
     }
 
+    pub fn get_r8(&mut self, modrm: &ModRM) -> u8 {
+        self.get_register8(modrm.or.unwrap() as usize)
+    }
+
     pub fn get_r32(&mut self, modrm: &ModRM) -> u32 {
         self.get_register32(modrm.or.unwrap() as usize)
+    }
+
+    pub fn set_r8(&mut self, modrm: &ModRM, value: u8) {
+        self.set_register8(modrm.or.unwrap() as usize, value);
+    }
+
+    pub fn set_rm8(&mut self, modrm: &ModRM, value: u8) {
+        if modrm.mod_byte == 3 {
+            self.set_register8(modrm.rm as usize, value);
+        } else {
+            let addr = self.calc_memory_address(&modrm);
+            self.set_memory8(addr, value as u32);
+        }
     }
 
     pub fn set_rm32(&mut self, modrm: &ModRM, value: u32) {

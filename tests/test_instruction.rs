@@ -11,8 +11,17 @@ mod instruction {
     fn instructions_name() {
         assert_eq!(instructions_with_name(0x01).1, "add_rm32_r32");
         assert_eq!(instructions_with_name(0x3B).1, "cmp_r32_rm32");
-        assert_eq!(instructions_with_name(0x50).1, "push_r32");
-        assert_eq!(instructions_with_name(0x58).1, "pop_r32");
+        assert_eq!(instructions_with_name(0x3C).1, "cmp_al_imm8");
+        assert_eq!(instructions_with_name(0x3D).1, "cmp_eax_imm32");
+        for i in 0x40 ..= 0x47 { 
+            assert_eq!(instructions_with_name(i).1, "inc_r32");
+        }
+        for i in 0x50 ..= 0x57 {
+            assert_eq!(instructions_with_name(i).1, "push_r32");
+        }
+        for i in 0x58 ..= 0x5F {
+            assert_eq!(instructions_with_name(0x58).1, "pop_r32");
+        }
         assert_eq!(instructions_with_name(0x68).1, "push_imm32");
         assert_eq!(instructions_with_name(0x6A).1, "push_imm8");
         assert_eq!(instructions_with_name(0x70).1, "jump_overflow");
@@ -26,15 +35,24 @@ mod instruction {
         assert_eq!(instructions_with_name(0x7C).1, "jump_less");
         assert_eq!(instructions_with_name(0x7E).1, "jump_less_or_eq");
         assert_eq!(instructions_with_name(0x83).1, "code_83");
+        assert_eq!(instructions_with_name(0x88).1, "mov_rm8_r8");
         assert_eq!(instructions_with_name(0x89).1, "mov_rm32_r32");
+        assert_eq!(instructions_with_name(0x8A).1, "mov_r8_rm8");
         assert_eq!(instructions_with_name(0x8B).1, "mov_r32_rm32");
-        assert_eq!(instructions_with_name(0xB8).1, "mov_r32_imm32");
+        for i in 0xB0 ..= 0xB7 {
+            assert_eq!(instructions_with_name(i).1, "mov_r8_imm8");
+        }
+        for i in 0xB8 ..= 0xBF {
+            assert_eq!(instructions_with_name(0xB8).1, "mov_r32_imm32");
+        }
         assert_eq!(instructions_with_name(0xC3).1, "ret");
         assert_eq!(instructions_with_name(0xC7).1, "mov_rm32_imm32");
         assert_eq!(instructions_with_name(0xC9).1, "leave");
         assert_eq!(instructions_with_name(0xE8).1, "call_rel32");
         assert_eq!(instructions_with_name(0xE9).1, "near_jump");
         assert_eq!(instructions_with_name(0xEB).1, "short_jump");
+        assert_eq!(instructions_with_name(0xEC).1, "in_al_dx");
+        assert_eq!(instructions_with_name(0xEE).1, "out_dx_al");
         assert_eq!(instructions_with_name(0xFF).1, "code_ff");
     }
     

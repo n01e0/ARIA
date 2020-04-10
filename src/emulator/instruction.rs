@@ -1,5 +1,8 @@
 use super::*;
 use crate::emulator::modrm::*;
+use crate::emulator::RegisterHigh::*;
+use crate::emulator::RegisterLow::*;
+use crate::emulator::io;
 
 type Instruction = fn(&mut Emulator);
 
@@ -35,6 +38,39 @@ impl Emulator {
         self.set_r32(&modrm, rm32);
     }
 
+    fn mov_r8_imm8(&mut self) {
+        let reg = self.get_code8(0) - 0xB0;
+        self.set_register8(reg as usize, self.get_code8(1));
+        self.eip += 1;
+    }
+
+    fn mov_r8_rm8(&mut self) {
+        self.eip += 1;
+        let modrm = self.parse_modrm();
+        let rm8 = self.get_rm8(&modrm);
+        self.set_r8(&modrm, rm8);
+    }
+
+    fn mov_rm8_r8(&mut self) {
+        self.eip += 1;
+        let modrm = self.parse_modrm();
+        let r8 = self.get_r8(&modrm);
+        self.set_rm8(&modrm, r8);
+    }
+
+    fn in_al_dx(&mut self) {
+        let addr = self.get_register32(EDX as usize) & 0xFFFF;
+        let value = io::io_in8(addr as u16);
+        self.set_register8(AL as usize, value);
+    }
+
+    fn out_dx_al(&mut self) {
+        let addr = self.get_register32(EDX as usize) & 0xFFFF;
+        let value = self.get_register8(AL as usize);
+        io::io_out8(addr as u16, value);
+        self.eip += 1;
+    }
+
     fn add_rm32_r32(&mut self) {
         self.eip += 1;
         let modrm = self.parse_modrm();
@@ -67,6 +103,22 @@ impl Emulator {
         self.update_eflags_sub(rm32, imm8 as u32, result);
     }
 
+    fn cmp_eax_imm32(&mut self) {
+        let value = self.get_code32(1);
+        let eax = self.get_register32(EAX as usize);
+        let result = eax as u64 - value as u64;
+        self.update_eflags_sub(eax, value, result);
+        self.eip += 5;
+    }
+
+    fn cmp_al_imm8(&mut self) {
+        let value = self.get_code8(1);
+        let al = self.get_register8(AL as usize);
+        let result = al as u64 - value as u64;
+        self.update_eflags_sub(al as u32, value as u32, result);
+        self.eip += 2;
+    }
+
     fn sub_rm32_imm8(&mut self, modrm: &ModRM) {
         let rm32 = self.get_rm32(modrm);
         let imm8 = self.get_sign_code8(0) as u32;
@@ -86,6 +138,11 @@ impl Emulator {
             7 => self.cmp_rm32_imm8(&modrm),
             n => panic!("Not implimented: 83 /{}", n),
         }
+    }
+
+    fn inc_r32(&mut self) {
+        let reg = self.get_code8(0) - 0x40;
+        self.set_register32(reg as usize, self.get_register32(reg as usize) + 1);
     }
 
     fn inc_rm32(&mut self, modrm: &ModRM) {
@@ -252,6 +309,9 @@ pub fn instructions(code: u8) -> Option<Instruction> {
     match code {
         0x01 => Some(Emulator::add_rm32_r32),
         0x3B => Some(Emulator::cmp_r32_rm32),
+        0x3C => Some(Emulator::cmp_al_imm8),
+        0x3D => Some(Emulator::cmp_eax_imm32),
+        0x40 ..= 0x47 => Some(Emulator::inc_r32),
         0x50 ..= 0x57 => Some(Emulator::push_r32),
         0x58 ..= 0x5F => Some(Emulator::pop_r32),
         0x68 => Some(Emulator::push_imm32),
@@ -267,14 +327,19 @@ pub fn instructions(code: u8) -> Option<Instruction> {
         0x7C => Some(Emulator::jump_less),
         0x7E => Some(Emulator::jump_less_or_eq),
         0x83 => Some(Emulator::code_83),
+        0x88 => Some(Emulator::mov_rm8_r8), 
         0x89 => Some(Emulator::mov_rm32_r32),
+        0x8A => Some(Emulator::mov_r8_rm8),
         0x8B => Some(Emulator::mov_r32_rm32),
+        0xB0 ..= 0xB7 => Some(Emulator::mov_r8_imm8),
         0xB8 ..= 0xBE => Some(Emulator::mov_r32_imm32),
         0xC3 => Some(Emulator::ret),
         0xC7 => Some(Emulator::mov_rm32_imm32),
         0xC9 => Some(Emulator::leave),
         0xE8 => Some(Emulator::call_rel32),
         0xE9 => Some(Emulator::near_jump),
+        0xEC => Some(Emulator::in_al_dx),
+        0xEE => Some(Emulator::out_dx_al),
         0xEB => Some(Emulator::short_jump),
         0xFF => Some(Emulator::code_ff),
         _ => None,
@@ -285,6 +350,8 @@ pub fn instructions_with_name(code: u8) -> (Option<Instruction>, &'static str) {
     match code {
         0x01 => (Some(Emulator::add_rm32_r32), "add_rm32_r32"),
         0x3B => (Some(Emulator::cmp_r32_rm32), "cmp_r32_rm32"),
+        0x3C => (Some(Emulator::cmp_al_imm8), "cmp_al_imm8"),
+        0x3D => (Some(Emulator::cmp_eax_imm32), "cmp_eax_imm32"),
         0x50 ..= 0x57 => (Some(Emulator::push_r32), "push_r32"),
         0x58 ..= 0x5F => (Some(Emulator::pop_r32), "pop_r32"),
         0x68 => (Some(Emulator::push_imm32), "push_imm32"),
@@ -300,8 +367,11 @@ pub fn instructions_with_name(code: u8) -> (Option<Instruction>, &'static str) {
         0x7C => (Some(Emulator::jump_less), "jump_less"),
         0x7E => (Some(Emulator::jump_less_or_eq), "jump_less_or_eq"),
         0x83 => (Some(Emulator::code_83), "code_83"),
+        0x88 => (Some(Emulator::mov_rm8_r8), "mov_rm8_r8"),
         0x89 => (Some(Emulator::mov_rm32_r32), "mov_rm32_r32"),
+        0x8A => (Some(Emulator::mov_r8_rm8), "mov_r8_rm8"),
         0x8B => (Some(Emulator::mov_r32_rm32), "mov_r32_rm32"),
+        0xB0 ..= 0xB7 => (Some(Emulator::mov_r8_imm8), "mov_r8_imm8"),
         0xB8 ..= 0xBE => (Some(Emulator::mov_r32_imm32), "mov_r32_imm32"),
         0xC3 => (Some(Emulator::ret), "ret"),
         0xC7 => (Some(Emulator::mov_rm32_imm32), "mov_rm32_imm32"),
@@ -309,6 +379,8 @@ pub fn instructions_with_name(code: u8) -> (Option<Instruction>, &'static str) {
         0xE8 => (Some(Emulator::call_rel32), "call_rel32"),
         0xE9 => (Some(Emulator::near_jump), "near_jump"),
         0xEB => (Some(Emulator::short_jump), "short_jump"),
+        0xEC => (Some(Emulator::in_al_dx), "in_al_dx"),
+        0xEE => (Some(Emulator::out_dx_al), "out_dx_al"),
         0xFF => (Some(Emulator::code_ff), "code_ff"),
         _ => (None, "None"),
     }
