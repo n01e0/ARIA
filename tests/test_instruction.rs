@@ -20,7 +20,7 @@ mod instruction {
             assert_eq!(instructions_with_name(i).1, "push_r32");
         }
         for i in 0x58 ..= 0x5F {
-            assert_eq!(instructions_with_name(0x58).1, "pop_r32");
+            assert_eq!(instructions_with_name(i).1, "pop_r32");
         }
         assert_eq!(instructions_with_name(0x68).1, "push_imm32");
         assert_eq!(instructions_with_name(0x6A).1, "push_imm8");
@@ -42,8 +42,8 @@ mod instruction {
         for i in 0xB0 ..= 0xB7 {
             assert_eq!(instructions_with_name(i).1, "mov_r8_imm8");
         }
-        for i in 0xB8 ..= 0xBF {
-            assert_eq!(instructions_with_name(0xB8).1, "mov_r32_imm32");
+        for i in 0xB8 ..= 0xBE {
+            assert_eq!(instructions_with_name(i).1, "mov_r32_imm32");
         }
         assert_eq!(instructions_with_name(0xC3).1, "ret");
         assert_eq!(instructions_with_name(0xC7).1, "mov_rm32_imm32");

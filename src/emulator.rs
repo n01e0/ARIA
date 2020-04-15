@@ -1,6 +1,7 @@
 use std::fmt;
 pub mod instruction;
 pub mod modrm;
+pub mod io;
 
 #[derive(Debug)] 
 pub enum Register {
@@ -13,6 +14,22 @@ pub enum Register {
     ESI,
     EDI,
     RegistersCount,
+} 
+
+#[allow(dead_code)]
+pub enum RegisterLow {
+    AL,
+    CL,
+    DL,
+    BL,
+}
+
+#[allow(dead_code)]
+pub enum RegisterHigh {
+    AH = RegisterLow::AL as isize + 4,
+    CH = RegisterLow::CL as isize + 4,
+    DH = RegisterLow::DL as isize + 4,
+    BL = RegisterLow::BL as isize + 4,
 }
 
 use self::Register::*;
@@ -220,8 +237,26 @@ impl Emulator {
         self.get_code32(index) as i32
     }
 
+    pub fn set_register8(&mut self, index: usize, value: u8) {
+        if index < 4 {
+            let r = self.registers[index] & 0xFFFFFF00;
+            self.registers[index] = r | value as u32;
+        } else {
+            let r = self.registers[index - 4] & 0xFFFF00FF;
+            self.registers[index - 4] = r | ((value as u32) << 8);
+        }
+    }
+
     pub fn set_register32(&mut self, index: usize, value: u32) {
         self.registers[index] = value;
+    }
+
+    pub fn get_register8(&self, index: usize) -> u8 {
+        if index < 4 {
+            (self.registers[index] & 0xFF) as u8
+        } else {
+            ((self.registers[index - 4] >> 8) & 0xFF) as u8
+        }
     }
     
     pub fn get_register32(&self, index: usize) -> u32 {

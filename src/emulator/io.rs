@@ -1,6 +1,3 @@
-use super::*;
-use crate::emulator::modrm::*;
-
 pub fn io_in8(addr: u16) -> u8 {
     match addr {
         0x03F8 => getchar(),

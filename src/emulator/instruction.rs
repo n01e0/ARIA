@@ -1,5 +1,6 @@
 use super::*;
 use crate::emulator::modrm::*;
+#[allow(unused_imports)]
 use crate::emulator::RegisterHigh::*;
 use crate::emulator::RegisterLow::*;
 use crate::emulator::io;
@@ -352,6 +353,7 @@ pub fn instructions_with_name(code: u8) -> (Option<Instruction>, &'static str) {
         0x3B => (Some(Emulator::cmp_r32_rm32), "cmp_r32_rm32"),
         0x3C => (Some(Emulator::cmp_al_imm8), "cmp_al_imm8"),
         0x3D => (Some(Emulator::cmp_eax_imm32), "cmp_eax_imm32"),
+        0x40 ..= 0x47 => (Some(Emulator::inc_r32), "inc_r32"),
         0x50 ..= 0x57 => (Some(Emulator::push_r32), "push_r32"),
         0x58 ..= 0x5F => (Some(Emulator::pop_r32), "pop_r32"),
         0x68 => (Some(Emulator::push_imm32), "push_imm32"),
