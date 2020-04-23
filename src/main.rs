@@ -22,6 +22,12 @@ fn main() {
                     .short("v")
                 )
 
+                .arg(Arg::with_name("quiet")
+                    .help("quiet")
+                    .long("quiet")
+                    .short("q")
+                )
+
                 .arg(Arg::with_name("file")
                     .help("binary file")
                     .required(true)
@@ -35,7 +41,9 @@ fn main() {
 
             while emu.eip < (MEMORY_SIZE as u32) {
                 let code = emu.get_code8(0);
-                println!("EIP = {:X}, Code = {:X}", emu.eip, code);
+                if !matches.is_present("quiet")  {
+                    println!("EIP = {:X}, Code = {:X}", emu.eip, code);
+                }
                 
                 if matches.is_present("verbose") {
                     let iwn = instruction::instructions_with_name(code);
@@ -53,14 +61,14 @@ fn main() {
                     }
                 }
 
-                if emu.eip == 0x00 {
+                if emu.eip == 0x00 && !matches.is_present("quiet") {
                     println!("\nEnd of program.\n");
                     break;
                 }
             }
             if matches.is_present("verbose") {
                 emu.dump_verbose();
-            } else {
+            } else if !matches.is_present("quiet") {
                 emu.dump();
             }
         }
