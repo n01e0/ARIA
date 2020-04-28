@@ -17,19 +17,19 @@ fn main() {
                 .about(crate_description!())
 
                 .arg(Arg::with_name("verbose")
-                    .help("verbose")
+                    .help("run verbose. dump verbose. information flood")
                     .long("verbose")
                     .short("v")
                 )
 
                 .arg(Arg::with_name("quiet")
-                    .help("quiet")
+                    .help("shut up and explode")
                     .long("quiet")
                     .short("q")
                 )
 
                 .arg(Arg::with_name("file")
-                    .help("binary file")
+                    .help("x86 binary file")
                     .required(true)
                 );
     let matches = app.get_matches();
@@ -38,39 +38,13 @@ fn main() {
         if let Ok(mut file) = File::open(path) {
             let mut emu = Emulator::new(MEMORY_SIZE, 0x7c00, 0x7c00);
             emu.load(&mut file);
-
-            while emu.eip < (MEMORY_SIZE as u32) {
-                let code = emu.get_code8(0);
-                if !matches.is_present("quiet")  {
-                    println!("EIP = {:X}, Code = {:X}", emu.eip, code);
-                }
-                
-                if matches.is_present("verbose") {
-                    let iwn = instruction::instructions_with_name(code);
-                    if let Some(inst) = iwn.0 {
-                        inst(&mut emu);
-                        println!("{}", iwn.1);
-                        println!("{}", emu);
-                    }
-                } else {
-                    if let Some(inst) = instruction::instructions(code) {
-                        inst(&mut emu);
-                    } else {
-                        eprintln!("Not implimented: {:X}", code);
-                        break;
-                    }
-                }
-
-                if emu.eip == 0x00 && !matches.is_present("quiet") {
-                    println!("\nEnd of program.\n");
-                    break;
-                }
-            }
-            if matches.is_present("verbose") {
-                emu.dump_verbose();
-            } else if !matches.is_present("quiet") {
-                emu.dump();
-            }
+            let flag = RunFlags {
+                verbose:    matches.is_present("verbose"),
+                quiet:      matches.is_present("quiet")
+            };
+            emu.run(flag);
+        } else {
+            eprintln!("Can't open {}.", path);
         }
     }
 }

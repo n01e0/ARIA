@@ -3,6 +3,12 @@ pub mod instruction;
 pub mod modrm;
 pub mod io;
 
+
+pub struct RunFlags {
+    pub verbose: bool,
+    pub quiet: bool
+}
+
 #[derive(Debug)] 
 pub enum Register {
     EAX,
@@ -49,7 +55,7 @@ impl fmt::Display for Register {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Eflags {
     pub raw: u32
 }
@@ -108,7 +114,7 @@ impl Eflags {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Emulator {
     pub registers: [u32; Register::RegistersCount as usize],
     pub eflags: Eflags,
@@ -184,6 +190,87 @@ impl Emulator {
     pub fn raw_load(&mut self, bytes: &mut Vec<u8>) {
         self.memory.append(bytes);
     }
+
+    pub fn run(&self, flag: RunFlags) {
+        if flag.quiet {
+            self.quiet();
+        } else if flag.verbose {
+            self.verbose();
+        } else {
+            self.default();
+        }
+    }
+
+    fn quiet(&self) {
+         let mut emu = self.to_owned();  
+         while (emu.eip as usize) < (emu.memory.capacity()) {
+             let code = emu.get_code8(0);
+             
+             if let Some(inst) = instruction::instructions(code) {
+                 inst(&mut emu);
+             } else {
+                 eprintln!("Not implimented: {:X}", code);
+                 break;
+             }
+         
+             if emu.eip == 0x00 {
+                 break;
+             }
+         }
+    }
+
+    fn verbose(&self) {
+        let mut emu = self.to_owned();
+        while (emu.eip as usize) < (emu.memory.capacity()) {
+            let code = emu.get_code8(0);
+
+            println!("EIP = {:X}, Code = {:X}", emu.eip, code);
+            
+            let iwn = instruction::instructions_with_name(code);
+
+            if let Some(inst) = iwn.0 {
+                inst(&mut emu);
+                println!("{}", iwn.1);
+                println!("{}", emu);
+            } else {
+                eprintln!("Not implimented: {:X}", code);
+                break;
+            }
+        
+            if emu.eip == 0x00 {
+                println!("\nEnd of program.\n");
+                break;
+            }
+        }
+
+        emu.dump_verbose();
+
+    }
+
+    fn default(&self) {
+        let mut emu = self.to_owned();  
+        while (emu.eip as usize) < (emu.memory.capacity()) {
+            let code = emu.get_code8(0);
+            println!("EIP = {:X}, Code = {:X}", emu.eip, code);
+            
+            if let Some(inst) = instruction::instructions(code) {
+                inst(&mut emu);
+            } else {
+                eprintln!("Not implimented: {:X}", code);
+                break;
+            }
+        
+            if emu.eip == 0x00 {
+                println!("\nEnd of program.\n");
+                break;
+            }
+        }
+
+        emu.dump();
+    }
+    /*
+     * Emulator instructions
+     */
 
     pub fn dump(&self) {
         eprintln!("{}", self);
