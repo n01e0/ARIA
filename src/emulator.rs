@@ -1,12 +1,16 @@
+extern crate colored;
+
+use colored::*;
 use std::fmt;
+
 pub mod instruction;
 pub mod modrm;
 pub mod io;
 
-
 pub struct RunFlags {
-    pub verbose: bool,
-    pub quiet: bool
+    pub verbose:    bool,
+    pub with_name:  bool,
+    pub quiet:      bool
 }
 
 #[derive(Debug)] 
@@ -196,27 +200,29 @@ impl Emulator {
             self.quiet();
         } else if flag.verbose {
             self.verbose();
+        } else if flag.with_name {
+            self.with_name();
         } else {
             self.default();
         }
     }
 
     fn quiet(&self) {
-         let mut emu = self.to_owned();  
-         while (emu.eip as usize) < (emu.memory.capacity()) {
-             let code = emu.get_code8(0);
-             
-             if let Some(inst) = instruction::instructions(code) {
-                 inst(&mut emu);
-             } else {
-                 eprintln!("Not implimented: {:X}", code);
-                 break;
-             }
-         
-             if emu.eip == 0x00 {
-                 break;
-             }
-         }
+        let mut emu = self.to_owned();  
+        while (emu.eip as usize) < (emu.memory.capacity()) {
+            let code = emu.get_code8(0);
+            
+            if let Some(inst) = instruction::instructions(code) {
+                inst(&mut emu);
+            } else {
+                eprintln!("{}", format!("Not implimented: 0x{:X}", code).red());
+                break;
+            }
+        
+            if emu.eip == 0x00 {
+                break;
+            }
+        }
     }
 
     fn verbose(&self) {
@@ -224,16 +230,16 @@ impl Emulator {
         while (emu.eip as usize) < (emu.memory.capacity()) {
             let code = emu.get_code8(0);
 
-            println!("EIP = {:X}, Code = {:X}", emu.eip, code);
+            println!("EIP = 0x{:X}, Code = 0x{:X}", emu.eip, code);
             
             let iwn = instruction::instructions_with_name(code);
 
             if let Some(inst) = iwn.0 {
                 inst(&mut emu);
-                println!("{}", iwn.1);
+                println!("\t - {}", iwn.1);
                 println!("{}", emu);
             } else {
-                eprintln!("Not implimented: {:X}", code);
+                eprintln!("{}", format!("Not implimented: 0x{:X}", code).red());
                 break;
             }
         
@@ -247,16 +253,19 @@ impl Emulator {
 
     }
 
-    fn default(&self) {
+    fn with_name(&self) {
         let mut emu = self.to_owned();  
         while (emu.eip as usize) < (emu.memory.capacity()) {
             let code = emu.get_code8(0);
-            println!("EIP = {:X}, Code = {:X}", emu.eip, code);
+            println!("EIP = 0x{:X}, Code = 0x{:X}", emu.eip, code);
             
-            if let Some(inst) = instruction::instructions(code) {
+            let iwn = instruction::instructions_with_name(code);
+
+            if let Some(inst) = iwn.0 {
                 inst(&mut emu);
+                eprintln!("\t - {}", iwn.1);
             } else {
-                eprintln!("Not implimented: {:X}", code);
+                eprintln!("{}", format!("Not implimented: 0x{:X}", code).red());
                 break;
             }
         
@@ -268,9 +277,28 @@ impl Emulator {
 
         emu.dump();
     }
-    /*
-     * Emulator instructions
-     */
+
+    fn default(&self) {
+        let mut emu = self.to_owned();  
+        while (emu.eip as usize) < (emu.memory.capacity()) {
+            let code = emu.get_code8(0);
+            println!("EIP = 0x{:X}, Code = 0x{:X}", emu.eip, code);
+            
+            if let Some(inst) = instruction::instructions(code) {
+                inst(&mut emu);
+            } else {
+                eprintln!("{}", format!("Not implimented: 0x{:X}", code).red());
+                break;
+            }
+        
+            if emu.eip == 0x00 {
+                println!("\nEnd of program.\n");
+                break;
+            }
+        }
+
+        emu.dump();
+    }
 
     pub fn dump(&self) {
         eprintln!("{}", self);
@@ -279,6 +307,9 @@ impl Emulator {
     pub fn dump_verbose(&self) {
         eprintln!("{:#?}", self);
     }
+    /*
+     * Emulator instructions
+     */
 
     pub fn set_memory8(&mut self, addr: u32, value: u32) {
         self.memory[addr as usize] = (value & 0xFF) as u8;

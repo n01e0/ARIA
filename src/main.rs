@@ -22,6 +22,12 @@ fn main() {
                     .short("v")
                 )
 
+                .arg(Arg::with_name("with_name")
+                    .help("run with log instruction name.")
+                    .long("with_name")
+                    .short("w")
+                )
+
                 .arg(Arg::with_name("quiet")
                     .help("shut up and explode")
                     .long("quiet")
@@ -40,6 +46,7 @@ fn main() {
             emu.load(&mut file);
             let flag = RunFlags {
                 verbose:    matches.is_present("verbose"),
+                with_name:  matches.is_present("with_name"),
                 quiet:      matches.is_present("quiet")
             };
             emu.run(flag);
