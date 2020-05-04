@@ -9,7 +9,7 @@ type Instruction = fn(&mut Emulator);
 
 impl Emulator {
     fn mov_r32_imm32(&mut self) {
-        let reg = self.get_code8(0) - 0xB8; // 0xB8 = registers[0]
+        let reg = self.get_code8(0) - 0xB8; // 0xB8 == registers[0]
         let value = self.get_code32(1);
         self.registers[reg as usize] = value;
         self.eip += 5;
@@ -42,7 +42,7 @@ impl Emulator {
     fn mov_r8_imm8(&mut self) {
         let reg = self.get_code8(0) - 0xB0;
         self.set_register8(reg as usize, self.get_code8(1));
-        self.eip += 1;
+        self.eip += 2;
     }
 
     fn mov_r8_rm8(&mut self) {
@@ -63,6 +63,7 @@ impl Emulator {
         let addr = self.get_register32(EDX as usize) & 0xFFFF;
         let value = io::io_in8(addr as u16);
         self.set_register8(AL as usize, value);
+        self.eip += 1;
     }
 
     fn out_dx_al(&mut self) {
@@ -92,7 +93,7 @@ impl Emulator {
         let modrm = self.parse_modrm();
         let r32 = self.get_r32(&modrm);
         let rm32 = self.get_rm32(&modrm);
-        let result: u64 = r32 as u64 - rm32 as u64;
+        let result: u64 = (r32 as u64).wrapping_sub(rm32 as u64);
         self.update_eflags_sub(r32, rm32, result);
     }
 
@@ -100,14 +101,14 @@ impl Emulator {
         let rm32 = self.get_rm32(&modrm);
         let imm8 = self.get_sign_code8(0);
         self.eip += 1;
-        let result = rm32 as u64 - imm8 as u64;
+        let result = (rm32 as u64).wrapping_sub(imm8 as u64);
         self.update_eflags_sub(rm32, imm8 as u32, result);
     }
 
     fn cmp_eax_imm32(&mut self) {
         let value = self.get_code32(1);
         let eax = self.get_register32(EAX as usize);
-        let result = eax as u64 - value as u64;
+        let result = (eax as u64).wrapping_sub(value as u64);
         self.update_eflags_sub(eax, value, result);
         self.eip += 5;
     }
@@ -115,7 +116,7 @@ impl Emulator {
     fn cmp_al_imm8(&mut self) {
         let value = self.get_code8(1);
         let al = self.get_register8(AL as usize);
-        let result = al as u64 - value as u64;
+        let result = (al as u64).wrapping_sub(value as u64);
         self.update_eflags_sub(al as u32, value as u32, result);
         self.eip += 2;
     }
@@ -124,7 +125,7 @@ impl Emulator {
         let rm32 = self.get_rm32(modrm);
         let imm8 = self.get_sign_code8(0) as u32;
         self.eip += 1;
-        let result = rm32 as u64 - imm8 as u64;
+        let result = (rm32 as u64).wrapping_sub(imm8 as u64);
         self.set_rm32(&modrm, rm32 - imm8);
         self.update_eflags_sub(rm32, imm8, result);
     }
@@ -144,6 +145,7 @@ impl Emulator {
     fn inc_r32(&mut self) {
         let reg = self.get_code8(0) - 0x40;
         self.set_register32(reg as usize, self.get_register32(reg as usize) + 1);
+        self.eip += 1;
     }
 
     fn inc_rm32(&mut self, modrm: &ModRM) {

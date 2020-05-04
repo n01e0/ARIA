@@ -112,6 +112,45 @@ mod instruction {
     }
 
     #[test]
+    fn instruction_mov_r8_imm8() {
+        let mut emu = Emulator {
+            registers: [0, 0, 0, 0, 0, 0, 0, 0],
+            eflags: Eflags { raw: 0 },
+            memory: vec![0xB0, 0xFF],
+            eip: 0,
+        };
+
+        instructions(emu.get_code8(0)).unwrap()(&mut emu);
+        assert_eq!(emu.registers[0], 0xFF);
+    }
+
+    #[test]
+    fn instruction_mov_r8_rm8() {
+        let mut emu = Emulator {
+            registers: [0, 2, 0, 0, 0, 0, 0, 0],
+            eflags: Eflags { raw: 0 },
+            memory: vec![0x8A, 0b00000001, 0xFF],
+            eip: 0,
+        };
+
+        instructions(emu.get_code8(0)).unwrap()(&mut emu);
+        assert_eq!(emu.registers[0], 0xFF);
+    }
+
+    #[test]
+    fn instruction_mov_rm8_r8() {
+        let mut emu = Emulator {
+            registers: [0, 0xFF, 0x02, 0, 0, 0, 0, 0],
+            eflags: Eflags { raw: 0 },
+            memory: vec![0x88, 0b00001010, 0x00],
+            eip: 0,
+        };
+
+        instructions(emu.get_code8(0)).unwrap()(&mut emu);
+        assert_eq!(emu.memory[2], 0xFF);
+    }
+
+    #[test]
     fn instruction_add_rm32_r32() {
         let mut emu = Emulator {
             registers: [0, 0xF0, 0x0F, 0, 0, 0, 0, 0],
@@ -125,6 +164,53 @@ mod instruction {
     }
 
     #[test]
+    fn instruction_add_rm32_imm8() {
+        let mut emu = Emulator {
+            registers: [0, 0xF0, 0x0F, 0, 0, 0, 0, 0],
+            eflags: Eflags { raw: 0 },
+            memory: vec![0x83, 0b11000001, 0x0F],
+            eip: 0,
+        };
+
+        instructions(emu.get_code8(0)).unwrap()(&mut emu);
+        assert_eq!(emu.registers[1], 0xFF);
+    }
+
+    #[test]
+    fn instruction_update_eflags_sub() {
+        let mut emu = Emulator {
+            registers: [0, 0, 0, 0, 0, 0, 0, 0], 
+            eflags: Eflags { raw: 0 },
+            memory: vec![0x0],
+            eip: 0,
+        };
+
+        emu.update_eflags_sub(0x10, 0x01, (2u64).wrapping_sub(1u64));
+        assert!(!emu.eflags.is_carry());
+        assert!(!emu.eflags.is_zero());
+        assert!(!emu.eflags.is_sign());
+        assert!(!emu.eflags.is_overflow());
+
+        emu.update_eflags_sub(0x11, 0x11, 3u64.wrapping_sub(3u64));
+        assert!(!emu.eflags.is_carry());
+        assert!(emu.eflags.is_zero());
+        assert!(!emu.eflags.is_sign());
+        assert!(!emu.eflags.is_overflow());
+
+        emu.update_eflags_sub(0b10, 0b11, (2u64).wrapping_sub(3u64));
+        assert!(emu.eflags.is_carry());
+        assert!(!emu.eflags.is_zero());
+        assert!(emu.eflags.is_sign());
+        assert!(!emu.eflags.is_overflow());
+
+        emu.update_eflags_sub(0x80000000, 0x1, (-2147483648_i32).wrapping_sub(1i32) as u64);
+        assert!(!emu.eflags.is_carry());
+        assert!(!emu.eflags.is_zero());
+        assert!(!emu.eflags.is_sign());
+        assert!(emu.eflags.is_overflow());
+    }
+
+    #[test]
     fn instruction_sub_rm32_imm8() {
         let mut emu = Emulator {
             registers: [0, 0, 0, 0, 0xF0, 0, 0, 0], 
@@ -135,6 +221,19 @@ mod instruction {
         
         instructions(emu.get_code8(0)).unwrap()(&mut emu);
         assert_eq!(emu.get_register32(0x4), 0xE0);
+    }
+
+    #[test]
+    fn instruction_inc_r32() {
+        let mut emu = Emulator {
+            registers: [0, 1, 0, 0, 0, 0, 0, 0],
+            eflags: Eflags { raw: 0 },
+            memory: vec![0x41],
+            eip: 0,
+        };
+        
+        instructions(emu.get_code8(0)).unwrap()(&mut emu);
+        assert_eq!(emu.registers[1], 2);
     }
     
     #[test]
