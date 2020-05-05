@@ -6,6 +6,7 @@ use std::fmt;
 pub mod instruction;
 pub mod modrm;
 pub mod io;
+pub mod bios;
 
 pub struct RunFlags {
     pub verbose:    bool,
@@ -39,7 +40,7 @@ pub enum RegisterHigh {
     AH = RegisterLow::AL as isize + 4,
     CH = RegisterLow::CL as isize + 4,
     DH = RegisterLow::DL as isize + 4,
-    BL = RegisterLow::BL as isize + 4,
+    BH = RegisterLow::BL as isize + 4,
 }
 
 use self::Register::*;

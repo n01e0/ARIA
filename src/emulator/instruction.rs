@@ -1,6 +1,8 @@
 use super::*;
 use crate::emulator::modrm::*;
 #[allow(unused_imports)]
+use crate::emulator::bios::*;
+#[allow(unused_imports)]
 use crate::emulator::RegisterHigh::*;
 use crate::emulator::RegisterLow::*;
 use crate::emulator::io;
@@ -295,6 +297,16 @@ impl Emulator {
         self.eip += (diff + 5) as u32;
     }
 
+    fn int(&mut self) {
+        let int_index = self.get_code8(1);
+        self.eip += 2;
+
+        match int_index {
+            0x10    => self.bios_video(),
+            n       => {eprintln!("unknown interrupt: 0x{}", n)},
+        }
+    }
+
     fn ret(&mut self) {
         self.eip = self.pop32();
     }
@@ -339,6 +351,7 @@ pub fn instructions(code: u8) -> Option<Instruction> {
         0xC3 => Some(Emulator::ret),
         0xC7 => Some(Emulator::mov_rm32_imm32),
         0xC9 => Some(Emulator::leave),
+        0xCD => Some(Emulator::int),
         0xE8 => Some(Emulator::call_rel32),
         0xE9 => Some(Emulator::near_jump),
         0xEC => Some(Emulator::in_al_dx),
@@ -380,6 +393,7 @@ pub fn instructions_with_name(code: u8) -> (Option<Instruction>, &'static str) {
         0xC3 => (Some(Emulator::ret), "ret"),
         0xC7 => (Some(Emulator::mov_rm32_imm32), "mov_rm32_imm32"),
         0xC9 => (Some(Emulator::leave), "leave"),
+        0xCD => (Some(Emulator::int), "int"),
         0xE8 => (Some(Emulator::call_rel32), "call_rel32"),
         0xE9 => (Some(Emulator::near_jump), "near_jump"),
         0xEB => (Some(Emulator::short_jump), "short_jump"),

@@ -48,6 +48,7 @@ mod instruction {
         assert_eq!(instructions_with_name(0xC3).1, "ret");
         assert_eq!(instructions_with_name(0xC7).1, "mov_rm32_imm32");
         assert_eq!(instructions_with_name(0xC9).1, "leave");
+        assert_eq!(instructions_with_name(0xCD).1, "int");
         assert_eq!(instructions_with_name(0xE8).1, "call_rel32");
         assert_eq!(instructions_with_name(0xE9).1, "near_jump");
         assert_eq!(instructions_with_name(0xEB).1, "short_jump");
