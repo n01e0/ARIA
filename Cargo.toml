@@ -1,8 +1,14 @@
 [package]
 name = "aria"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["n01e0 <noleo@vanillabeans.mobi>"]
+description = "Another Rust Implemented x86 Archetecture emulator."
+license = "MIT"
+license-file = "LICENSE"
 edition = "2018"
+readme = "README.md"
+repository = "https://github.com/n01e0/ARIA"
+
 
 [dependencies]
 clap = "*"

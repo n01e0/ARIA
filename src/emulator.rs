@@ -264,7 +264,7 @@ impl Emulator {
 
             if let Some(inst) = iwn.0 {
                 inst(&mut emu);
-                eprintln!("\t - {}", iwn.1);
+                eprintln!("\t - {}", format!("{}", iwn.1).bold());
             } else {
                 eprintln!("{}", format!("Not implimented: 0x{:X}", code).red());
                 break;
