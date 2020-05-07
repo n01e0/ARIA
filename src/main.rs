@@ -9,27 +9,28 @@ use emulator::*;
 use clap::{App, Arg};
 
 const MEMORY_SIZE: usize = 1024 * 1024;
+const ORG: u32 = 0x7C00;
 
 fn main() {
-    let app = App::new(crate_name!())
+    let matches = App::new(crate_name!())
                 .version(crate_version!())
                 .author(crate_authors!())
                 .about(crate_description!())
 
                 .arg(Arg::with_name("verbose")
-                    .help("run verbose. dump verbose. information flood")
+                    .help("Run verbose. dump verbose. information will flood.")
                     .long("verbose")
                     .short("v")
                 )
 
                 .arg(Arg::with_name("with_name")
-                    .help("run with log instruction name.")
+                    .help("Run with print each instruction name.")
                     .long("with_name")
                     .short("w")
                 )
 
                 .arg(Arg::with_name("quiet")
-                    .help("shut up and explode")
+                    .help("Shut up and explode")
                     .long("quiet")
                     .short("q")
                 )
@@ -37,12 +38,11 @@ fn main() {
                 .arg(Arg::with_name("file")
                     .help("x86 binary file")
                     .required(true)
-                );
-    let matches = app.get_matches();
+                ).get_matches();
 
     if let Some(path) = matches.value_of("file") {
         if let Ok(mut file) = File::open(path) {
-            let mut emu = Emulator::new(MEMORY_SIZE, 0x7c00, 0x7c00);
+            let mut emu = Emulator::new(MEMORY_SIZE, ORG, ORG);
             emu.load(&mut file);
             let flag = RunFlags {
                 verbose:    matches.is_present("verbose"),

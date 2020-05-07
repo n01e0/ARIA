@@ -1,5 +1,5 @@
-![](https://github.com/n01e0/ARIA/workflows/Cargo%20test/badge.svg)
-![](https://github.com/n01e0/ARIA/workflows/Cargo%20build/badge.svg)
+![Cargo test](https://github.com/n01e0/ARIA/workflows/Cargo%20test/badge.svg)
+![Cargo build](https://github.com/n01e0/ARIA/workflows/Cargo%20build/badge.svg)
 
 # ARIA
 Another Rust Implemented x86 Architecture emulator.
