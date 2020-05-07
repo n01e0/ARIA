@@ -1,6 +1,6 @@
 [package]
 name = "aria"
-version = "0.3.0"
+version = "0.3.5"
 authors = ["n01e0 <noleo@vanillabeans.mobi>"]
 description = "Another Rust Implemented x86 Archetecture emulator."
 license-file = "LICENSE"
