@@ -52,7 +52,7 @@ pub struct ModRM {
     pub disp: Disp, // u8 or u32
 }
 
-impl Emulator {
+impl<I: Read, O: Write> Emulator<I, O> {
     pub fn parse_modrm(&mut self) -> ModRM {
         let mut ret = ModRM {
             mod_byte: 0,

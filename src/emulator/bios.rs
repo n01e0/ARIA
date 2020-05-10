@@ -9,7 +9,7 @@ fn put_string(s: &str) {
     s.bytes().for_each(move |c| io::io_out8(0x03F8, c));
 }
 
-impl Emulator {
+impl<I: Read, O: Write> Emulator<I, O> {
     fn bios_video_teletype(&mut self) {
         let color: u8 = self.get_register8(BL as usize) & 0x0F;
         let ch: u8 = self.get_register8(AL as usize);

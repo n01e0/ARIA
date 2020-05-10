@@ -2,6 +2,7 @@ extern crate colored;
 
 use colored::*;
 use std::fmt;
+use std::io::{Read, Write};
 
 pub mod instruction;
 pub mod modrm;
@@ -120,16 +121,18 @@ impl Eflags {
 }
 
 #[derive(Debug, Clone)]
-pub struct Emulator {
+pub struct Emulator<I: Read, O: Write> {
     pub registers: [u32; Register::RegistersCount as usize],
     pub eflags: Eflags,
     pub memory: Vec<u8>,
     pub eip: u32,
+    pub input: I,
+    pub output: O
 }
 
 const ORG: usize = 0x7C00;
 
-impl fmt::Display for Emulator {
+impl<I: Read, O: Write> fmt::Display for Emulator<I, O> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use self::Register::*;
         let emu = format!("\
@@ -163,8 +166,8 @@ impl fmt::Display for Emulator {
     }
 }
 
-impl Emulator {
-    pub fn new(size: usize, eip: u32, esp: u32) -> Emulator {
+impl<I: Read, O: Write> Emulator<I, O> {
+    pub fn new(size: usize, eip: u32, esp: u32, input: I, output: O) -> Emulator<I, O> {
         Emulator {
             registers: [
                 /* EAX */ 0,
@@ -179,11 +182,12 @@ impl Emulator {
             eflags: Eflags { raw: 0 },
             memory: Vec::with_capacity(ORG + size),
             eip: eip,
+            input: input,
+            output: output
         }
     }
 
     pub fn load(&mut self, file: &mut std::fs::File) {
-        use std::io::{Read};
         let mut bios = [0; ORG].to_vec();
         self.memory.append(&mut bios);
 
@@ -250,7 +254,7 @@ impl Emulator {
             }
         }
 
-        emu.dump_verbose();
+        emu.dump();
 
     }
 
@@ -305,9 +309,6 @@ impl Emulator {
         eprintln!("{}", self);
     }
 
-    pub fn dump_verbose(&self) {
-        eprintln!("{:#?}", self);
-    }
     /*
      * Emulator instructions
      */

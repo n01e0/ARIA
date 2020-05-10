@@ -7,6 +7,7 @@ use std::fs::File;
 use std::env;
 use emulator::*;
 use clap::{App, Arg};
+use std::io;
 
 const MEMORY_SIZE: usize = 1024 * 1024;
 const ORG: u32 = 0x7C00;
@@ -42,7 +43,7 @@ fn main() {
 
     if let Some(path) = matches.value_of("file") {
         if let Ok(mut file) = File::open(path) {
-            let mut emu = Emulator::new(MEMORY_SIZE, ORG, ORG);
+            let mut emu = Emulator::new<io::Stdin, io::Stdout>(MEMORY_SIZE, ORG, ORG, io::stdin(), io::stdout());
             emu.load(&mut file);
             let flag = RunFlags {
                 verbose:    matches.is_present("verbose"),

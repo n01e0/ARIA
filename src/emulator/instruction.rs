@@ -6,10 +6,11 @@ use crate::emulator::bios::*;
 use crate::emulator::RegisterHigh::*;
 use crate::emulator::RegisterLow::*;
 use crate::emulator::io;
+use std::io::{Read, Write};
 
-type Instruction = fn(&mut Emulator);
+type Instruction<I: Read, O: Write> = fn(&mut Emulator<I, O>);
 
-impl Emulator {
+impl<I: Read, O: Write> Emulator<I, O> {
     fn mov_r32_imm32(&mut self) {
         let reg = self.get_code8(0) - 0xB8; // 0xB8 == registers[0]
         let value = self.get_code32(1);
@@ -320,7 +321,7 @@ impl Emulator {
     }
 }
 
-pub fn instructions(code: u8) -> Option<Instruction> {
+pub fn instructions<I: Read, O: Write>(code: u8) -> Option<Instruction<I, O>> {
     match code {
         0x01 => Some(Emulator::add_rm32_r32),
         0x3B => Some(Emulator::cmp_r32_rm32),
@@ -362,7 +363,7 @@ pub fn instructions(code: u8) -> Option<Instruction> {
     }
 }
 
-pub fn instructions_with_name(code: u8) -> (Option<Instruction>, &'static str) {
+pub fn instructions_with_name<I: Read, O: Write>(code: u8) -> (Option<Instruction<I,O>>, &'static str) {
     match code {
         0x01 => (Some(Emulator::add_rm32_r32), "add_rm32_r32"),
         0x3B => (Some(Emulator::cmp_r32_rm32), "cmp_r32_rm32"),
