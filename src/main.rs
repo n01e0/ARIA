@@ -6,38 +6,19 @@ extern crate clap;
 use std::fs::File;
 use std::env;
 use emulator::*;
-use clap::{App, Arg};
 
 const MEMORY_SIZE: usize = 1024 * 1024;
 const ORG: u32 = 0x7C00;
 
 fn main() {
-    let matches = App::new(crate_name!())
-                .version(crate_version!())
-                .author(crate_authors!())
-                .about(crate_description!())
-
-                .arg(Arg::with_name("verbose")
-                    .help("Run verbose. dump verbose. information will flood.")
-                    .long("verbose")
-                    .short("v")
-                )
-
-                .arg(Arg::with_name("with_name")
-                    .help("Run with print each instruction name.")
-                    .long("with_name")
-                    .short("w")
-                )
-
-                .arg(Arg::with_name("quiet")
-                    .help("Shut up and explode")
-                    .long("quiet")
-                    .short("q")
-                )
-
-                .arg(Arg::with_name("file")
-                    .help("x86 binary file")
-                    .required(true)
+    let matches = clap_app!(ARIA =>
+                    (version:   crate_version!())
+                    (author:    crate_authors!())
+                    (about:     crate_description!())
+                    (@arg verbose: -v --verbose "Run verbose. dump verbose. information will flood.")
+                    (@arg with_name: -w --with_name "Run with print each instruction name.")
+                    (@arg quiet: -q --quiet "Shut up and explode")
+                    (@arg file: +required "x86 binary file")
                 ).get_matches();
 
     if let Some(path) = matches.value_of("file") {
