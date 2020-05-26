@@ -46,13 +46,13 @@ impl Disp {
 #[derive(Debug, Copy, Clone)]
 pub struct ModRM {
     pub mod_byte: u8,
-    pub or: OR,     // u8
+    pub or: OR, // u8
     pub rm: u8,
     pub sib: u8,
     pub disp: Disp, // u8 or u32
 }
 
-impl<I: Read, O: Write> Emulator<I, O> {
+impl<I: Read + Clone + Copy, O: Write + Clone + Copy> Emulator<I, O> {
     pub fn parse_modrm(&mut self) -> ModRM {
         let mut ret = ModRM {
             mod_byte: 0,
@@ -71,7 +71,7 @@ impl<I: Read, O: Write> Emulator<I, O> {
          *  +-----+--------+--------+
          */
         ret.mod_byte = (code & 0xC0) >> 6;
-        /*  code & 
+        /*  code &
          *  +--+--+--+--+--+--+--+--+
          *  | 7| 6| 5| 4| 3| 2| 1| 0|
          *  +-----+--------+--------+
@@ -80,7 +80,7 @@ impl<I: Read, O: Write> Emulator<I, O> {
          *  | 1| 1| 0| 0| 0| 0| 0| 0|   => 0xC0
          *  +--+--+--+--+--+--+--+--+
          */
-        ret.or = RegIndex( (code & 0x38) >> 3);
+        ret.or = RegIndex((code & 0x38) >> 3);
         /*  code
          *  +--+--+--+--+--+--+--+--+
          *  | 7| 6| 5| 4| 3| 2| 1| 0|
@@ -103,14 +103,12 @@ impl<I: Read, O: Write> Emulator<I, O> {
 
         self.eip += 1;
 
-        if ret.mod_byte != 0b11 
-            && ret.rm == 0b100 {
+        if ret.mod_byte != 0b11 && ret.rm == 0b100 {
             ret.sib = self.get_code8(0);
             self.eip += 1;
         }
 
-        if (ret.mod_byte == 0b00 && ret.rm == 0b0101) 
-            || ret.mod_byte == 0b0010 {
+        if (ret.mod_byte == 0b00 && ret.rm == 0b0101) || ret.mod_byte == 0b0010 {
             ret.disp = Disp32(self.get_sign_code32(0) as u32);
             self.eip += 4;
         } else if ret.mod_byte == 0b01 {
@@ -172,36 +170,36 @@ impl<I: Read, O: Write> Emulator<I, O> {
     pub fn set_r32(&mut self, modrm: &ModRM, value: u32) {
         self.set_register32(modrm.or.unwrap() as usize, value);
     }
-    
+
     pub fn calc_memory_address(&self, modrm: &ModRM) -> u32 {
         match modrm.mod_byte {
-            0 => {
-                match modrm.rm {
-                    4 => modrm_not_impl(*modrm),
-                    5 => modrm.disp.dword(),
-                    _ => self.get_register32(modrm.rm as usize),
-                }
+            0 => match modrm.rm {
+                4 => modrm_not_impl(*modrm),
+                5 => modrm.disp.dword(),
+                _ => self.get_register32(modrm.rm as usize),
             },
             1 => {
                 if modrm.rm == 4 {
                     modrm_not_impl(*modrm)
                 } else {
-                    self.get_register32(modrm.rm as usize) 
-                        + modrm.disp.byte() as u32
+                    self.get_register32(modrm.rm as usize) + modrm.disp.byte() as u32
                 }
-            },
+            }
             2 => {
                 if modrm.rm == 4 {
                     modrm_not_impl(*modrm)
                 } else {
                     self.get_register32(modrm.rm as usize) + modrm.disp.dword()
                 }
-            },
+            }
             _ => modrm_not_impl(*modrm),
         }
     }
 }
 
 fn modrm_not_impl(modrm: ModRM) -> ! {
-    panic!("Not implemented ModRM mod = {}, rm = {}", modrm.mod_byte, modrm.rm);
+    panic!(
+        "Not implemented ModRM mod = {}, rm = {}",
+        modrm.mod_byte, modrm.rm
+    );
 }

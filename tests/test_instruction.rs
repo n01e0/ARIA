@@ -2,24 +2,21 @@ extern crate aria;
 
 #[cfg(test)]
 mod instruction {
-    use aria::emulator:: {
-        *,
-        instruction::*
-    };
-    
+    use aria::emulator::{instruction::*, *};
+
     #[test]
     fn instructions_name() {
         assert_eq!(instructions_with_name(0x01).1, "add_rm32_r32");
         assert_eq!(instructions_with_name(0x3B).1, "cmp_r32_rm32");
         assert_eq!(instructions_with_name(0x3C).1, "cmp_al_imm8");
         assert_eq!(instructions_with_name(0x3D).1, "cmp_eax_imm32");
-        for i in 0x40 ..= 0x47 { 
+        for i in 0x40..=0x47 {
             assert_eq!(instructions_with_name(i).1, "inc_r32");
         }
-        for i in 0x50 ..= 0x57 {
+        for i in 0x50..=0x57 {
             assert_eq!(instructions_with_name(i).1, "push_r32");
         }
-        for i in 0x58 ..= 0x5F {
+        for i in 0x58..=0x5F {
             assert_eq!(instructions_with_name(i).1, "pop_r32");
         }
         assert_eq!(instructions_with_name(0x68).1, "push_imm32");
@@ -39,10 +36,10 @@ mod instruction {
         assert_eq!(instructions_with_name(0x89).1, "mov_rm32_r32");
         assert_eq!(instructions_with_name(0x8A).1, "mov_r8_rm8");
         assert_eq!(instructions_with_name(0x8B).1, "mov_r32_rm32");
-        for i in 0xB0 ..= 0xB7 {
+        for i in 0xB0..=0xB7 {
             assert_eq!(instructions_with_name(i).1, "mov_r8_imm8");
         }
-        for i in 0xB8 ..= 0xBE {
+        for i in 0xB8..=0xBE {
             assert_eq!(instructions_with_name(i).1, "mov_r32_imm32");
         }
         assert_eq!(instructions_with_name(0xC3).1, "ret");
@@ -56,7 +53,7 @@ mod instruction {
         assert_eq!(instructions_with_name(0xEE).1, "out_dx_al");
         assert_eq!(instructions_with_name(0xFF).1, "code_ff");
     }
-    
+
     #[test]
     fn instruction_mov_r32_imm32() {
         let mut emu = Emulator {
@@ -65,7 +62,7 @@ mod instruction {
             memory: vec![0xB8, 0x00, 0x00, 0x00, 0x00],
             eip: 0,
         };
-        
+
         emu.set_memory32(1, 0x01234567);
         instructions(emu.get_code8(0)).unwrap()(&mut emu);
         assert_eq!(emu.registers[0] as u32, 0x01234567 as u32);
@@ -84,7 +81,7 @@ mod instruction {
         instructions(emu.get_code8(0)).unwrap()(&mut emu);
         assert_eq!(emu.registers[0], 0x01234567);
     }
-    
+
     #[test]
     fn instruction_mov_rm32_r32() {
         let mut emu = Emulator {
@@ -180,7 +177,7 @@ mod instruction {
     #[test]
     fn instruction_update_eflags_sub() {
         let mut emu = Emulator {
-            registers: [0, 0, 0, 0, 0, 0, 0, 0], 
+            registers: [0, 0, 0, 0, 0, 0, 0, 0],
             eflags: Eflags { raw: 0 },
             memory: vec![0x0],
             eip: 0,
@@ -214,12 +211,12 @@ mod instruction {
     #[test]
     fn instruction_sub_rm32_imm8() {
         let mut emu = Emulator {
-            registers: [0, 0, 0, 0, 0xF0, 0, 0, 0], 
+            registers: [0, 0, 0, 0, 0xF0, 0, 0, 0],
             eflags: Eflags { raw: 0 },
             memory: vec![0x83, 0xec, 0x10],
             eip: 0,
         };
-        
+
         instructions(emu.get_code8(0)).unwrap()(&mut emu);
         assert_eq!(emu.get_register32(0x4), 0xE0);
     }
@@ -232,11 +229,11 @@ mod instruction {
             memory: vec![0x41],
             eip: 0,
         };
-        
+
         instructions(emu.get_code8(0)).unwrap()(&mut emu);
         assert_eq!(emu.registers[1], 2);
     }
-    
+
     #[test]
     fn instruction_inc_rm32() {
         let mut emu = Emulator {

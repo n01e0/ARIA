@@ -1,26 +1,36 @@
-use std::io::{self, Write};
+use std::io::{self, Read, Write};
 
-pub fn io_in8(addr: u16) -> u8 {
+pub fn io_in8<I: Read>(input: Option<I>, addr: u16) -> u8 {
     match addr {
-        0x03F8 => getchar(),
+        0x03F8 => getchar(input),
         _ => 0,
     }
 }
 
-pub fn io_out8(addr: u16, value: u8) {
+pub fn io_out8<O: Write>(output: Option<O>, addr: u16, value: u8) {
     match addr {
-        0x03F8 => putchar(value),
+        0x03F8 => putchar(output, value),
         _ => (),
     }
 }
 
-fn getchar() -> u8 {
-    let mut buf = String::new();
-    io::stdin().read_line(&mut buf).expect("Can't read line");
-    buf.as_bytes()[0]
+fn getchar<I: Read>(input: Option<I>) -> u8 {
+    if let Some(mut mem) = input {
+        let mut buf = Vec::new();
+        mem.read_to_end(&mut buf).expect("Can't read line");
+        buf[0]
+    } else {
+        let mut buf = String::new();
+        io::stdin().read_line(&mut buf).expect("Can't read line");
+        buf.as_bytes()[0]
+    }
 }
 
-fn putchar(value: u8) {
-    print!("{}", value as char);
-    io::stdout().flush().expect("Can't flush stdout");
+fn putchar<O: Write>(output: Option<O>, value: u8) {
+    if let Some(mut mem) = output {
+        write!(mem, "{}", value as char).expect("Can't write to memory");
+    } else {
+        print!("{}", value as char);
+        io::stdout().flush().expect("Can't flush stdout");
+    }
 }

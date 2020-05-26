@@ -4,18 +4,18 @@ use colored::*;
 use std::fmt;
 use std::io::{Read, Write};
 
-pub mod instruction;
-pub mod modrm;
-pub mod io;
 pub mod bios;
+pub mod instruction;
+pub mod io;
+pub mod modrm;
 
 pub struct RunFlags {
-    pub verbose:    bool,
-    pub with_name:  bool,
-    pub quiet:      bool
+    pub verbose: bool,
+    pub with_name: bool,
+    pub quiet: bool,
 }
 
-#[derive(Debug)] 
+#[derive(Debug)]
 pub enum Register {
     EAX,
     ECX,
@@ -26,7 +26,7 @@ pub enum Register {
     ESI,
     EDI,
     RegistersCount,
-} 
+}
 
 #[allow(dead_code)]
 pub enum RegisterLow {
@@ -63,7 +63,7 @@ impl fmt::Display for Register {
 
 #[derive(Debug, Clone)]
 pub struct Eflags {
-    pub raw: u32
+    pub raw: u32,
 }
 
 impl Eflags {
@@ -121,21 +121,22 @@ impl Eflags {
 }
 
 #[derive(Debug, Clone)]
-pub struct Emulator<I: Read, O: Write> {
+pub struct Emulator<I: Read + Clone + Copy, O: Write + Clone + Copy> {
     pub registers: [u32; Register::RegistersCount as usize],
     pub eflags: Eflags,
     pub memory: Vec<u8>,
     pub eip: u32,
-    pub input: I,
-    pub output: O
+    pub input: Option<I>,
+    pub output: Option<O>,
 }
 
 const ORG: usize = 0x7C00;
 
-impl<I: Read, O: Write> fmt::Display for Emulator<I, O> {
+impl<I: Read + Clone + Copy, O: Write + Clone + Copy> fmt::Display for Emulator<I, O> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use self::Register::*;
-        let emu = format!("\
+        let emu = format!(
+            "\
         Emulator\n\
         \tregisters\n\
         \t\tEAX: 0x{EAX:08X}\n\
@@ -149,41 +150,35 @@ impl<I: Read, O: Write> fmt::Display for Emulator<I, O> {
         \teflags:  0x{eflags:08X}\n\
         \tmemory:  {memory}\n\
         \teip:     0x{eip:08X}\n",
-
-        EAX=self.registers[EAX as usize],
-        ECX=self.registers[ECX as usize],
-        EDX=self.registers[EDX as usize],
-        EBX=self.registers[EBX as usize],
-        ESP=self.registers[ESP as usize],
-        EBP=self.registers[EBP as usize],
-        ESI=self.registers[ESI as usize],
-        EDI=self.registers[EDI as usize],
-        eflags=self.eflags.raw,
-        memory="<Ommited>",
-        eip=self.eip);
+            EAX = self.registers[EAX as usize],
+            ECX = self.registers[ECX as usize],
+            EDX = self.registers[EDX as usize],
+            EBX = self.registers[EBX as usize],
+            ESP = self.registers[ESP as usize],
+            EBP = self.registers[EBP as usize],
+            ESI = self.registers[ESI as usize],
+            EDI = self.registers[EDI as usize],
+            eflags = self.eflags.raw,
+            memory = "<Ommited>",
+            eip = self.eip
+        );
 
         write!(f, "{}", emu)
     }
 }
 
-impl<I: Read, O: Write> Emulator<I, O> {
-    pub fn new(size: usize, eip: u32, esp: u32, input: I, output: O) -> Emulator<I, O> {
+impl<I: Read + Clone + Copy, O: Write + Clone + Copy> Emulator<I, O> {
+    pub fn new(size: usize, eip: u32, esp: u32, input: Option<I>, output: Option<O>) -> Emulator<I, O> {
         Emulator {
             registers: [
-                /* EAX */ 0,
-                /* ECX */ 0,
-                /* EDX */ 0,
-                /* EBX */ 0,
-                /* ESP */ esp,
-                /* EBP */ 0,
-                /* ESI */ 0,
-                /* EDI */ 0
+                /* EAX */ 0, /* ECX */ 0, /* EDX */ 0, /* EBX */ 0,
+                /* ESP */ esp, /* EBP */ 0, /* ESI */ 0, /* EDI */ 0,
             ],
             eflags: Eflags { raw: 0 },
             memory: Vec::with_capacity(ORG + size),
             eip: eip,
             input: input,
-            output: output
+            output: output,
         }
     }
 
@@ -213,17 +208,17 @@ impl<I: Read, O: Write> Emulator<I, O> {
     }
 
     fn quiet(&self) {
-        let mut emu = self.to_owned();  
+        let mut emu = self.clone();
         while (emu.eip as usize) < (emu.memory.capacity()) {
             let code = emu.get_code8(0);
-            
+
             if let Some(inst) = instruction::instructions(code) {
                 inst(&mut emu);
             } else {
                 eprintln!("{}", format!("Not implimented: 0x{:X}", code).red());
                 break;
             }
-        
+
             if emu.eip == 0x00 {
                 break;
             }
@@ -236,7 +231,7 @@ impl<I: Read, O: Write> Emulator<I, O> {
             let code = emu.get_code8(0);
 
             println!("EIP = 0x{:X}, Code = 0x{:X}", emu.eip, code);
-            
+
             let iwn = instruction::instructions_with_name(code);
 
             if let Some(inst) = iwn.0 {
@@ -247,7 +242,7 @@ impl<I: Read, O: Write> Emulator<I, O> {
                 eprintln!("{}", format!("Not implimented: 0x{:X}", code).red());
                 break;
             }
-        
+
             if emu.eip == 0x00 {
                 println!("\nEnd of program.\n");
                 break;
@@ -255,15 +250,14 @@ impl<I: Read, O: Write> Emulator<I, O> {
         }
 
         emu.dump();
-
     }
 
     fn with_name(&self) {
-        let mut emu = self.to_owned();  
+        let mut emu = self.to_owned();
         while (emu.eip as usize) < (emu.memory.capacity()) {
             let code = emu.get_code8(0);
             println!("EIP = 0x{:X}, Code = 0x{:X}", emu.eip, code);
-            
+
             let iwn = instruction::instructions_with_name(code);
 
             if let Some(inst) = iwn.0 {
@@ -273,7 +267,7 @@ impl<I: Read, O: Write> Emulator<I, O> {
                 eprintln!("{}", format!("Not implimented: 0x{:X}", code).red());
                 break;
             }
-        
+
             if emu.eip == 0x00 {
                 println!("\nEnd of program.\n");
                 break;
@@ -284,18 +278,18 @@ impl<I: Read, O: Write> Emulator<I, O> {
     }
 
     fn default(&self) {
-        let mut emu = self.to_owned();  
+        let mut emu = self.to_owned();
         while (emu.eip as usize) < (emu.memory.capacity()) {
             let code = emu.get_code8(0);
             println!("EIP = 0x{:X}, Code = 0x{:X}", emu.eip, code);
-            
+
             if let Some(inst) = instruction::instructions(code) {
                 inst(&mut emu);
             } else {
                 eprintln!("{}", format!("Not implimented: 0x{:X}", code).red());
                 break;
             }
-        
+
             if emu.eip == 0x00 {
                 println!("\nEnd of program.\n");
                 break;
@@ -316,23 +310,23 @@ impl<I: Read, O: Write> Emulator<I, O> {
     pub fn set_memory8(&mut self, addr: u32, value: u32) {
         self.memory[addr as usize] = (value & 0xFF) as u8;
     }
-    
+
     pub fn get_memory8(&self, addr: u32) -> u8 {
         self.memory[addr as usize]
     }
-    
+
     pub fn set_memory32(&mut self, addr: u32, value: u32) {
         for i in 0..4 {
             self.set_memory8(addr + i, value >> (i * 8));
         }
     }
-    
+
     pub fn get_memory32(&self, addr: u32) -> u32 {
         let mut ret: u32 = 0;
         for i in 0..4 {
             ret |= (self.get_memory8(addr + i) as u32) << (i * 8);
         }
-    
+
         ret
     }
 
@@ -378,7 +372,7 @@ impl<I: Read, O: Write> Emulator<I, O> {
             ((self.registers[index - 4] >> 8) & 0xFF) as u8
         }
     }
-    
+
     pub fn get_register32(&self, index: usize) -> u32 {
         self.registers[index]
     }
@@ -407,4 +401,3 @@ impl<I: Read, O: Write> Emulator<I, O> {
         self.eflags.set_overflow(sign1 != sign2 && sign1 != signr);
     }
 }
-

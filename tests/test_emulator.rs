@@ -2,11 +2,8 @@ extern crate aria;
 
 #[cfg(test)]
 mod emulator {
-    use aria::emulator::{
-                *,
-                Register::*
-    };
-    
+    use aria::emulator::{Register::*, *};
+
     #[test]
     fn emulator_enum() {
         assert_eq!(EAX as usize, 0);
@@ -18,7 +15,7 @@ mod emulator {
         assert_eq!(ESI as usize, 6);
         assert_eq!(EDI as usize, 7);
         assert_eq!(RegistersCount as usize, 8);
-    
+
         assert_eq!(format!("{}", EAX), "EAX");
         assert_eq!(format!("{}", ECX), "ECX");
         assert_eq!(format!("{}", EDX), "EDX");
@@ -29,7 +26,7 @@ mod emulator {
         assert_eq!(format!("{}", EDI), "EDI");
         assert_eq!(format!("{}", RegistersCount), "RegistersCount");
     }
-    
+
     #[test]
     fn emulator_init() {
         let memsiz = 1024 * 1024;
@@ -48,16 +45,16 @@ mod emulator {
         emu.raw_load(&mut memory);
         assert_eq!(emu.memory.iter().sum::<u8>(), 15);
     }
-    
+
     #[test]
     fn emulator_set_memory8() {
         let mut emu = Emulator {
             registers: [0, 0, 0, 0, 0, 0, 0, 0],
-            eflags: Eflags{ raw: 0 },
+            eflags: Eflags { raw: 0 },
             memory: vec![0x00, 0x56, 0x34, 0x12],
             eip: 0,
         };
-    
+
         emu.set_memory8(0x00, 0xFF78);
         assert_eq!(0x12345678, emu.get_memory32(0));
     }
@@ -91,35 +88,35 @@ mod emulator {
     fn emulator_get_code8() {
         let emu = Emulator {
             registers: [0, 0, 0, 0, 0, 0, 0, 0],
-            eflags: Eflags{ raw: 0 },
+            eflags: Eflags { raw: 0 },
             memory: vec![0xB8],
             eip: 0,
         };
-    
+
         assert_eq!(0xB8, emu.get_code8(0));
     }
-    
+
     #[test]
     fn emulator_get_sign_code8() {
         let emu = Emulator {
             registers: [0, 0, 0, 0, 0, 0, 0, 0],
-            eflags: Eflags{ raw: 0 },
+            eflags: Eflags { raw: 0 },
             memory: vec![0xFF, 0xFE],
             eip: 0,
         };
-    
+
         assert_eq!(-2, emu.get_sign_code8(1));
     }
-    
+
     #[test]
     fn emulator_get_code32() {
         let emu = Emulator {
             registers: [0, 0, 0, 0, 0, 0, 0, 0],
-            eflags: Eflags{ raw: 0 },
+            eflags: Eflags { raw: 0 },
             memory: vec![0x78, 0x56, 0x34, 0x12],
             eip: 0,
         };
-    
+
         assert_eq!(0x12345678, emu.get_code32(0));
     }
 
@@ -129,25 +126,28 @@ mod emulator {
         emu.raw_load(&mut vec![0xFF, 0xFF, 0xFF, 0xFF]);
         assert_eq!(-1, emu.get_sign_code32(0));
     }
-    
+
     #[test]
     fn emulator_register32() {
         let mut emu = Emulator {
             registers: [0, 0, 0, 0, 0, 0, 0, 0],
-            eflags: Eflags{ raw: 0 },
+            eflags: Eflags { raw: 0 },
             memory: vec![0x00, 0x56, 0x34, 0x12],
             eip: 0,
         };
-        emu.set_register32(EAX as usize, 0x61) ;
-        assert_eq!(emu.registers[EAX as usize], emu.get_register32(EAX as usize));
+        emu.set_register32(EAX as usize, 0x61);
+        assert_eq!(
+            emu.registers[EAX as usize],
+            emu.get_register32(EAX as usize)
+        );
     }
 
     #[test]
-   fn emulator_stack() {
+    fn emulator_stack() {
         let mut emu = Emulator::new(4, 0, 0);
         emu.raw_load(&mut vec![0, 0, 0, 0]);
         emu.registers[ESP as usize] = 4;
         emu.push32(0x12345678);
         assert_eq!(0x12345678, emu.pop32());
-   }
+    }
 }

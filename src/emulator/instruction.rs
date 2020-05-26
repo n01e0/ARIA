@@ -1,16 +1,16 @@
 use super::*;
-use crate::emulator::modrm::*;
 #[allow(unused_imports)]
 use crate::emulator::bios::*;
+use crate::emulator::io;
+use crate::emulator::modrm::*;
 #[allow(unused_imports)]
 use crate::emulator::RegisterHigh::*;
 use crate::emulator::RegisterLow::*;
-use crate::emulator::io;
 use std::io::{Read, Write};
 
-type Instruction<I: Read, O: Write> = fn(&mut Emulator<I, O>);
+type Instruction<I, O> = fn(&mut Emulator<I, O>);
 
-impl<I: Read, O: Write> Emulator<I, O> {
+impl<I: Read + Clone + Copy, O: Write + Clone + Copy> Emulator<I, O> {
     fn mov_r32_imm32(&mut self) {
         let reg = self.get_code8(0) - 0xB8; // 0xB8 == registers[0]
         let value = self.get_code32(1);
@@ -64,7 +64,7 @@ impl<I: Read, O: Write> Emulator<I, O> {
 
     fn in_al_dx(&mut self) {
         let addr = self.get_register32(EDX as usize) & 0xFFFF;
-        let value = io::io_in8(addr as u16);
+        let value = io::io_in8(self.input, addr as u16);
         self.set_register8(AL as usize, value);
         self.eip += 1;
     }
@@ -72,7 +72,7 @@ impl<I: Read, O: Write> Emulator<I, O> {
     fn out_dx_al(&mut self) {
         let addr = self.get_register32(EDX as usize) & 0xFFFF;
         let value = self.get_register8(AL as usize);
-        io::io_out8(addr as u16, value);
+        io::io_out8(self.output, addr as u16, value);
         self.eip += 1;
     }
 
@@ -245,7 +245,7 @@ impl<I: Read, O: Write> Emulator<I, O> {
         };
         self.eip += diff as u32 + 2;
     }
-    
+
     fn jump_not_zero(&mut self) {
         let diff = if self.eflags.is_zero() {
             0
@@ -263,7 +263,7 @@ impl<I: Read, O: Write> Emulator<I, O> {
         };
         self.eip += diff as u32 + 2;
     }
-    
+
     fn jump_not_overflow(&mut self) {
         let diff = if self.eflags.is_overflow() {
             0
@@ -283,15 +283,14 @@ impl<I: Read, O: Write> Emulator<I, O> {
     }
 
     fn jump_less_or_eq(&mut self) {
-        let diff = if self.eflags.is_zero() 
-                        || self.eflags.is_sign() != self.eflags.is_overflow() {
+        let diff = if self.eflags.is_zero() || self.eflags.is_sign() != self.eflags.is_overflow() {
             self.get_sign_code8(1)
         } else {
             0
         };
         self.eip += diff as u32 + 2;
     }
-    
+
     fn call_rel32(&mut self) {
         let diff = self.get_sign_code32(1);
         self.push32(self.eip + 5);
@@ -303,8 +302,8 @@ impl<I: Read, O: Write> Emulator<I, O> {
         self.eip += 2;
 
         match int_index {
-            0x10    => self.bios_video(),
-            n       => {eprintln!("unknown interrupt: 0x{}", n)},
+            0x10 => self.bios_video(),
+            n => eprintln!("unknown interrupt: 0x{}", n),
         }
     }
 
@@ -321,17 +320,17 @@ impl<I: Read, O: Write> Emulator<I, O> {
     }
 }
 
-pub fn instructions<I: Read, O: Write>(code: u8) -> Option<Instruction<I, O>> {
+pub fn instructions<I: Read + Clone + Copy, O: Write + Clone + Copy>(code: u8) -> Option<Instruction<I, O>> {
     match code {
         0x01 => Some(Emulator::add_rm32_r32),
         0x3B => Some(Emulator::cmp_r32_rm32),
         0x3C => Some(Emulator::cmp_al_imm8),
         0x3D => Some(Emulator::cmp_eax_imm32),
-        0x40 ..= 0x47 => Some(Emulator::inc_r32),
-        0x50 ..= 0x57 => Some(Emulator::push_r32),
-        0x58 ..= 0x5F => Some(Emulator::pop_r32),
+        0x40..=0x47 => Some(Emulator::inc_r32),
+        0x50..=0x57 => Some(Emulator::push_r32),
+        0x58..=0x5F => Some(Emulator::pop_r32),
         0x68 => Some(Emulator::push_imm32),
-        0x6A => Some(Emulator::push_imm8), 
+        0x6A => Some(Emulator::push_imm8),
         0x70 => Some(Emulator::jump_overflow),
         0x71 => Some(Emulator::jump_not_overflow),
         0x72 => Some(Emulator::jump_carry),
@@ -343,12 +342,12 @@ pub fn instructions<I: Read, O: Write>(code: u8) -> Option<Instruction<I, O>> {
         0x7C => Some(Emulator::jump_less),
         0x7E => Some(Emulator::jump_less_or_eq),
         0x83 => Some(Emulator::code_83),
-        0x88 => Some(Emulator::mov_rm8_r8), 
+        0x88 => Some(Emulator::mov_rm8_r8),
         0x89 => Some(Emulator::mov_rm32_r32),
         0x8A => Some(Emulator::mov_r8_rm8),
         0x8B => Some(Emulator::mov_r32_rm32),
-        0xB0 ..= 0xB7 => Some(Emulator::mov_r8_imm8),
-        0xB8 ..= 0xBE => Some(Emulator::mov_r32_imm32),
+        0xB0..=0xB7 => Some(Emulator::mov_r8_imm8),
+        0xB8..=0xBE => Some(Emulator::mov_r32_imm32),
         0xC3 => Some(Emulator::ret),
         0xC7 => Some(Emulator::mov_rm32_imm32),
         0xC9 => Some(Emulator::leave),
@@ -363,15 +362,17 @@ pub fn instructions<I: Read, O: Write>(code: u8) -> Option<Instruction<I, O>> {
     }
 }
 
-pub fn instructions_with_name<I: Read, O: Write>(code: u8) -> (Option<Instruction<I,O>>, &'static str) {
+pub fn instructions_with_name<I: Read + Clone + Copy, O: Write + Clone + Copy>(
+    code: u8,
+) -> (Option<Instruction<I, O>>, &'static str) {
     match code {
         0x01 => (Some(Emulator::add_rm32_r32), "add_rm32_r32"),
         0x3B => (Some(Emulator::cmp_r32_rm32), "cmp_r32_rm32"),
         0x3C => (Some(Emulator::cmp_al_imm8), "cmp_al_imm8"),
         0x3D => (Some(Emulator::cmp_eax_imm32), "cmp_eax_imm32"),
-        0x40 ..= 0x47 => (Some(Emulator::inc_r32), "inc_r32"),
-        0x50 ..= 0x57 => (Some(Emulator::push_r32), "push_r32"),
-        0x58 ..= 0x5F => (Some(Emulator::pop_r32), "pop_r32"),
+        0x40..=0x47 => (Some(Emulator::inc_r32), "inc_r32"),
+        0x50..=0x57 => (Some(Emulator::push_r32), "push_r32"),
+        0x58..=0x5F => (Some(Emulator::pop_r32), "pop_r32"),
         0x68 => (Some(Emulator::push_imm32), "push_imm32"),
         0x6A => (Some(Emulator::push_imm8), "push_imm8"),
         0x70 => (Some(Emulator::jump_overflow), "jump_overflow"),
@@ -389,8 +390,8 @@ pub fn instructions_with_name<I: Read, O: Write>(code: u8) -> (Option<Instructio
         0x89 => (Some(Emulator::mov_rm32_r32), "mov_rm32_r32"),
         0x8A => (Some(Emulator::mov_r8_rm8), "mov_r8_rm8"),
         0x8B => (Some(Emulator::mov_r32_rm32), "mov_r32_rm32"),
-        0xB0 ..= 0xB7 => (Some(Emulator::mov_r8_imm8), "mov_r8_imm8"),
-        0xB8 ..= 0xBE => (Some(Emulator::mov_r32_imm32), "mov_r32_imm32"),
+        0xB0..=0xB7 => (Some(Emulator::mov_r8_imm8), "mov_r8_imm8"),
+        0xB8..=0xBE => (Some(Emulator::mov_r32_imm32), "mov_r32_imm32"),
         0xC3 => (Some(Emulator::ret), "ret"),
         0xC7 => (Some(Emulator::mov_rm32_imm32), "mov_rm32_imm32"),
         0xC9 => (Some(Emulator::leave), "leave"),
