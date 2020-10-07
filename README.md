@@ -11,4 +11,4 @@ This is a port of 「自作エミュレータで学ぶx86アーキテクチャ�
 The original implementation is in [here](https://book.mynavi.jp/ec/products/detail/id=41347)
 
 ## DEMO
-![demo](https://raw.githubusercontent.com/n01e0/ARIA/master/demo/aria_demo.gif)
+![demo](https://raw.githubusercontent.com/n01e0/ARIA/master/demo/aria_demo.webm)
